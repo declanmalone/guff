@@ -3,12 +3,12 @@
 //! Implements GF(2<sup>x</sup>) for various "natural" sizes
 //! such as 2<sup>8</sup>, 2<sup>16</sup> and 2<sup>32</sup>.
 //! 
-//! # Basic Use: doing maths in a particular field
+//! # Basic Use: doing maths on elements of a particular field
 //! 
-//! As a user, the steps to take to use this library are:
+//! The general outline for using this library is:
 //!
 //! * decide what "class" of field you want to use (GF(2<sup>8</sup>),
-//! GF(2<sup>16</sup>), etc.);
+//! GF(2<sup>16</sup>), …);
 //! 
 //! * decide if you want to use one of the optimised adaptations or
 //! are happy with the default, generic code;
@@ -22,23 +22,32 @@
 //! 
 //! 
 //! ```rust
-//! use guff::{GaloisField, F4};
+//! use guff::{GaloisField, F4, new_gf4};
 //! 
 //! fn main() {
-//!     // create a GF(2<sup>4</sup>) field from a struct
+//!     // Create a GF(2<sup>4</sup>) field from a struct
 //!     // * `19` is the field's irreducible polynomial
 //!     // * `3` is the same value with bit 0x10 removed
 //!     let f = guff::F4 { full : 19, compact : 3 };
 //!     
 //!     assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
+//! 
+//!     // The same, but using constructors as syntactic sugar
+//!     let f2 = guff::new_gf4(19, 3);
+//!
+//!     assert_eq!(f2.pow(5,3), f2.mul(5,f2.mul(5,5)) );
+//!     assert_eq!(f.pow(5,3), f2.pow(5,3));
 //! }
 //! 
 //! ```
+//!
+
 //! 
 //! # Vector Operations
 //! 
 //! Many applications involving Galois Fields involve working with
-//! vectors of field elements instead of single elements. 
+//! vectors of field elements instead of single elements. Various
+//! primitive methods are implemented:
 //! 
 //! * sum of vector elements
 //! * sum of two equal-length vectors
@@ -50,12 +59,13 @@
 //! 
 //! These are all implemented using slices of the appropriate
 //! [ElementStore] type. Where necessary, if a vector (slice) type is
-//! to be returned, it must be handled by the user by passing a
-//! mutable reference to the library. Also note that some operations
-//! (such as scaling a vector) are done in-place, so if the previous
-//! values need to be saved, they should be copied first.
+//! to be returned, it must be handled by the user by passing in a
+//! mutable reference.  Also note that some operations (such as
+//! scaling a vector) are done in-place, so if the previous values
+//! need to be saved, they should be copied first.
 //! 
-//! 
+//! See the [GaloisField] documentation for a full list of method
+//! signatures (prefixed with `vec_`).
 //! 
 //! # Crate Name
 //! 
@@ -332,6 +342,7 @@ pub trait GaloisField {
 				 b : &[Self::E]) {
 	assert_eq!(dest.len(), a.len());
 	assert_eq!(a.len(), b.len());
+	let (mut a_iter, mut b_iter) = (a.iter(), b.iter());
 	for d in dest.iter_mut() {
 	    *d = *a_iter.next().unwrap() ^ *b_iter.next().unwrap()
 	}
@@ -375,16 +386,16 @@ pub trait GaloisField {
 }
 
 
-/// A type implementing maths in GF(2<sup>4</sup>)
+/// A type implementing (default) maths in GF(2<sup>4</sup>)
 pub struct F4  { pub full : u8,  pub compact : u8 }
 
-/// A type implementing maths in GF(2<sup>8</sup>)
+/// A type implementing (default) maths in GF(2<sup>8</sup>)
 pub struct F8  { pub full : u16, pub compact : u8 }
 	
-/// A type implementing maths in GF(2<sup>16</sup>)
+/// A type implementing (default) maths in GF(2<sup>16</sup>)
 pub struct F16 { pub full : u32, pub compact : u16 }
 
-/// A type implementing maths in GF(2<sup>32</sup>)
+/// A type implementing (default) maths in GF(2<sup>32</sup>)
 pub struct F32 { pub full : u64, pub compact : u32 }
 
 impl GaloisField for F4 {
@@ -404,8 +415,8 @@ impl GaloisField for F4 {
 
 // Constructor for GF(2<sup>4</sup>)
 #[allow(dead_code)]
-/// Create a new GF(2<sup>4</sup>) field using the default
-/// implementation from a given field polynomial
+/// Create a new GF(2<sup>4</sup>) field with a supplied field
+/// polynomial (using the default implementation)
 pub fn new_gf4(full : u8, compact : u8) -> F4  {
     F4 {full : full, compact : compact}
 }
@@ -427,8 +438,8 @@ impl GaloisField for F8 {
 
 // Constructor for GF(2<sup>8</sup>)
 #[allow(dead_code)]
-/// Create a new GF(2<sup>8</sup>) field using the default
-/// implementation from a given field polynomial
+/// Create a new GF(2<sup>8</sup>) field with a supplied field
+/// polynomial (using the default implementation)
 pub fn new_gf8(full : u16, compact : u8) -> F8  {
     F8 {full : full, compact : compact}
 }
@@ -450,8 +461,8 @@ impl GaloisField for F16 {
 
 // Constructor for GF(2<sup>16</sup>)
 #[allow(dead_code)]
-/// Create a new GF(2<sup>16</sup>) field using the default
-/// implementation from a given field polynomial
+/// Create a new GF(2<sup>16</sup>) field with a supplied field
+/// polynomial (using the default implementation)
 pub fn new_gf16(full : u32, compact : u16) -> F16  {
     F16 {full : full, compact : compact}
 }
@@ -473,8 +484,8 @@ impl GaloisField for F32 {
 
 // Constructor for GF(2<sup>32</sup>)
 #[allow(dead_code)]
-/// Create a new GF(2<sup>32</sup>) field using the default
-/// implementation from a given field polynomial
+/// Create a new GF(2<sup>32</sup>) field with a supplied field
+/// polynomial (using the default implementation)
 pub fn new_gf32(full : u64, compact : u32) -> F32  {
     F32 {full : full, compact : compact}
 }
