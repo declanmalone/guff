@@ -271,6 +271,24 @@ pub trait GaloisField {
 	}
     }
 
+    #[doc(hidden)]
+    /// Bitwise modular reduction from EE to E
+
+    // Here we have the reverse problem of converting an EE to E
+    fn mod_reduce(&self, mut a : Self::EE) -> Self::E
+    where Self::E: From<Self::EE>
+    {
+	let eezero   = Self::EE::zero();
+	let mut poly = self.full_poly()  << (Self::ORDER - 1).into();
+	let mut mask = Self::POLY_BIT    << (Self::ORDER - 1).into();
+	loop {
+	    if a & mask != eezero { a = a ^ poly }
+	    if a < Self::POLY_BIT { return a.into() }
+	    mask = mask >> 1;
+	    poly = poly >> 1;
+	}
+    }
+	
     
     // Other accessors provide syntactic sugar
     
