@@ -1,17 +1,68 @@
-//! # Grand Unified Finite Field library
+//! # Grand Unified Finite Field library*
 //!
-//! Implements GF(2<sup>x</sup>) for various natural sizes (currently
-//! 8, 16 and 32).
+//! Implements GF(2<sup>x</sup>) for various "natural" sizes
+//! such as 2<sup>8</sup>, 2<sup>16</sup> and 2<sup>32</sup>.
+//!
+//! My goals for this crate are to:
 //! 
+//! 1. help me learn to write good modules in Rust
 //! 
+//! 2. help interested users learn about finite fields (ie, Galois
+//! fields)
 //! 
+//! 3. provide a generic baseline implementation of basic maths
+//! (add, multiply, divide, etc.) over finite fields
+//! 
+//! 4. explore various optimisations/adaptations (including
+//! table-based lookups and architecture-specific SIMD code) that can
+//! selectively override some/all of the default implementations
+//! (while remaining compatible with other implementations).
+//! 
+//! Also to:
+//! 
+//! 5. provide some useful utility functions that go beyond just
+//! `add`, `mul`, `div`, etc. (eg, determining whether a field
+//! polynomial is primitive, or generating lookup tables for different
+//! kinds of optimisations)
+//! 
+//! See the top-level `Readme` for more information about the above.
+//! 
+//! # Basic Use: doing maths in a particular field
+//! 
+//! As a user, the steps to take to use this library are:
+//!
+//! * decide what "class" of field you want to use (GF(2<sup>8</sup>),
+//! GF(2<sup>16</sup>), etc.);
+//! 
+//! * decide if you want to use one of the optimised adaptations or
+//! are happy with the default, generic code;
+//!
+//! * create a new field object (we can call `f`) of that class with
+//! your chosen field polynomial (aka "irreducible polynomial") by
+//! calling the appropriate constructor;
+//!
+//! * use that object to do maths in that field: eg, `result =
+//! f.mul(a,b)`
 
+
+
+
+
+
+
+
+
+//! 
+//! \* The package name is deliberately hyperbolic:
+//!
+//! > Noun *guff* - unacceptable behavior (especially ludicrously false statements)
 
 use num_traits;
 use num::{PrimInt,One,Zero};
 
-
-pub trait FieldStore : 'static + Copy
+/// A typing trait meant to map to a primitive unsigned integer type
+/// such as u8, u16 or u32.
+pub trait ElementStore : 'static + Copy
     + num_traits::int::PrimInt
     + std::fmt::Display
     + num::FromPrimitive + num::ToPrimitive
@@ -20,26 +71,27 @@ pub trait FieldStore : 'static + Copy
     // + num::cast::AsPrimitive<Self::E>
     // + num::Integer + num::One
 {}
-impl<T> FieldStore for T
+impl<T> ElementStore for T
 where T : 'static + Copy
     + num_traits::int::PrimInt
     + std::fmt::Display
     + num::FromPrimitive + num::ToPrimitive
 {}
 
+/// 
 pub trait GaloisField {
     /// Natural storage class (u8, u16, u32, etc.) for storing
     /// elements of the field.
-    type E  : FieldStore;
+    type E  : ElementStore;
     /// The next largest natural storage class, eg if E is u8, then EE
     /// should be U16. Used for:
     ///
-    ///* storing/returning field polynomial, which is always larger
-    ///  than the largest field element
+    /// * storing/returning field polynomial, which is always larger
+    /// than the largest field element
     ///
-    ///* storing the result of a non-modular (overflowing) multiply of
-    /// two field elements
-    type EE : FieldStore;
+    /// * storing the result of a non-modular (overflowing) multiply
+    /// of two field elements
+    type EE : ElementStore;
 
     /// The field polynomial with (implicit) high bit stripped off.
     fn poly(&self) -> Self::E;
