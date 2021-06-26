@@ -50,8 +50,8 @@
 //! 
 //! These are all implemented using slices of the appropriate
 //! [ElementStore] type. Where necessary, if a vector (slice) type is
-//! to be returned, it must be handled by the user, and a mutable
-//! reference passed to the library. Also note that some operations
+//! to be returned, it must be handled by the user by passing a
+//! mutable reference to the library. Also note that some operations
 //! (such as scaling a vector) are done in-place, so if the previous
 //! values need to be saved, they should be copied first.
 //! 
@@ -404,7 +404,8 @@ impl GaloisField for F4 {
 
 // Constructor for GF(2<sup>4</sup>)
 #[allow(dead_code)]
-/// Create a new  GF(2<sup>4</sup>) field from a given field polynomial
+/// Create a new GF(2<sup>4</sup>) field using the default
+/// implementation from a given field polynomial
 pub fn new_gf4(full : u8, compact : u8) -> F4  {
     F4 {full : full, compact : compact}
 }
@@ -426,7 +427,8 @@ impl GaloisField for F8 {
 
 // Constructor for GF(2<sup>8</sup>)
 #[allow(dead_code)]
-/// Create a new  GF(2<sup>8</sup>) field from a given field polynomial
+/// Create a new GF(2<sup>8</sup>) field using the default
+/// implementation from a given field polynomial
 pub fn new_gf8(full : u16, compact : u8) -> F8  {
     F8 {full : full, compact : compact}
 }
@@ -448,7 +450,8 @@ impl GaloisField for F16 {
 
 // Constructor for GF(2<sup>16</sup>)
 #[allow(dead_code)]
-/// Create a new  GF(2<sup>16</sup>) field from a given field polynomial
+/// Create a new GF(2<sup>16</sup>) field using the default
+/// implementation from a given field polynomial
 pub fn new_gf16(full : u32, compact : u16) -> F16  {
     F16 {full : full, compact : compact}
 }
@@ -470,7 +473,8 @@ impl GaloisField for F32 {
 
 // Constructor for GF(2<sup>32</sup>)
 #[allow(dead_code)]
-/// Create a new  GF(2<sup>32</sup>) field from a given field polynomial
+/// Create a new GF(2<sup>32</sup>) field using the default
+/// implementation from a given field polynomial
 pub fn new_gf32(full : u64, compact : u32) -> F32  {
     F32 {full : full, compact : compact}
 }
