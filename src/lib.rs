@@ -83,6 +83,7 @@ pub trait GaloisField {
     /// Natural storage class (u8, u16, u32, etc.) for storing
     /// elements of the field.
     type E  : ElementStore;
+    
     /// The next largest natural storage class, eg if E is u8, then EE
     /// should be U16. Used for:
     ///
@@ -91,29 +92,43 @@ pub trait GaloisField {
     ///
     /// * storing the result of a non-modular (overflowing) multiply
     /// of two field elements
-    type EE : ElementStore;
+    type EE : ElementStore; // where Self::EE : From<Self::E>;
 
+    /// Size of the field in bits, eg GF(2<sup>8</sup>) &rarr; 8
+    const ORDER      : u16;
+    /// High bit of field values, eg GF(2<sup>8</sup>) &rarr; 0x80
+    const HIGH_BIT   : Self::E;
+    /// High bit of field polynomial, eg GF(2<sup>8</sup>) &rarr; 0x100
+    const POLY_BIT   : Self::EE;
+    /// Mask for selecting all bits of field value,
+    /// eg GF(2<sup>8</sup>) &rarr; 0xff
+    const FIELD_MASK : Self::E;
+
+
+    // If we try to implement one of the two *poly() methods in terms
+    // of the other, we run into the problem of needing to convert
+    // between E and EE, which is not worth the effort/hassle.
+    
     /// The field polynomial with (implicit) high bit stripped off.
     fn poly(&self) -> Self::E;
-    /// Field polynomial in full
-    fn full_poly(&self) -> Self::EE;
-    /// These will become associated constants
-    fn high_bit() -> Self::E;
-    fn order() -> u16;
-    fn field_mask() -> Self::E;
 
+    /// Field polynomial in full, with high poly bit set
+    fn full_poly(&self) -> Self::EE;
+
+    // Arithmetic operations
+    
+    /// Addition in Galois Fields GF(2<sup>x</sup>) is simply XOR
     fn add(&self, a : Self::E, b : Self::E) -> Self::E
     {
 	a ^ b
     }
+    /// Subtraction is the same as addition in GF(2<sup>x</sup>)
+    fn sub(&self, a : Self::E, b : Self::E) -> Self::E
+    {
+	self.add(a, b)
+    }
 
-    // upgrade storage class to prevent overflow
-    // fn mul_no_mod(&self, a : Self::E, b : Self::E)
-    // 	      -> Self::EE
-    // {
-    //     // implement straight, non-modular addition
-    //     6u8.into()
-    // }
+    /// Polynomial multiplication modulo the field polynomial
     fn mul(&self, mut a : Self::E, b : Self::E) -> Self::E
     {
 	let poly = self.poly();
@@ -121,8 +136,8 @@ pub trait GaloisField {
 	let zero : Self::E = num::zero();
 	let one  : Self::E = num::one();
 	//     let one  = Self::E::one();
-	let field_mask : Self::E    = Self::field_mask();
-	let high_bit : Self::E      = Self::high_bit();
+	let field_mask : Self::E    = Self::FIELD_MASK;
+	let high_bit : Self::E      = Self::HIGH_BIT;
 	let mut result : Self::E    = if b & one != zero {a} else { zero };
 	let mut bit : Self::E       = one + one;
 	loop {
@@ -144,11 +159,15 @@ pub trait GaloisField {
 	// unreachable!()
     }
 
+    /// Division modulo to the field polynomial (default
+    /// implementation calculated as a・b<sup>-1</sup>
     fn div(&self, a : Self::E, b : Self::E) -> Self::E
     {
 	self.mul(a, self.inv(b))
     }
-    
+
+    /// Calculate polynomial a・b<sup>-1</sup> modulo the field
+    /// polynomial (using Extended Euclidean method)
     fn inv(&self, a : Self::E) -> Self::E
     {
 	let (zero, one)    = (Self::E::zero(),
@@ -191,7 +210,7 @@ pub trait GaloisField {
     fn pow(&self, a : Self::E, b : Self::EE) -> Self::E {
 	let mut result : Self::E = a;
 	let zero : Self::EE     = num::zero();
-	let one : Self::E        = num::one();
+	let one  : Self::E      = num::one();
 	let mut mask : Self::EE;
 
 	// identity below only works on field
@@ -201,11 +220,11 @@ pub trait GaloisField {
 	// shift mask right if there are leading zeros
 	// fixup for GF(16) to ignore unused top nibble
 	
-	// Since we have mask : P, subtract any extra leading 0
+	// Since we have mask : EE, subtract any extra leading 0
 
 	// want to move mask right so that it coincides with
 	// highest bit of b. This alternative way works:
-	let clz = b.leading_zeros() as usize;
+	let clz  = b.leading_zeros() as usize;
 	let bits = zero.leading_zeros() as usize;
 	//
 	mask = Self::EE::one() << (bits - clz - 1);
@@ -218,11 +237,60 @@ pub trait GaloisField {
 	}
 	result
     }
+
+    // Long multiplication and modular reduction are not as useful to
+    // users, though it is handy to have a default implementation for
+    // adapted implementations. I can't make these private, but I have
+    // options:
+    //
+    // * preface method name with _ as a *hint* that this is not
+    //   usually not meant to be called by a user
+    //
+    // * hide the function in the user documentation
+
+    #[doc(hidden)]
+    /// Long Polynomial multiplication, *not* modulo the field polynomial
+
+    // Note the extra type constraint for conversion E -> EE
+    // (I could do something similar for poly/full_poly)
+    fn mull(&self, a : Self::E, b : Self::E) -> Self::EE
+    where <Self as GaloisField>::EE: From<<Self as GaloisField>::E>
+    {
+	let ezero  = Self::E::zero();
+	let eezero = Self::EE::zero();
+
+	// shift a, mask against b
+	let mut aa : Self::EE = a.into();
+	let mut res           = eezero;
+	let mut mask          = Self::E::one();
+	loop {
+	    if b & mask != ezero { res = res ^ aa }
+	    mask = mask << 1;
+	    aa   = aa   << 1;
+	    if aa == eezero      { return res }
+	}
+    }
+
     
+    // Other accessors provide syntactic sugar
+    
+    /// Access Self::HIGH_BIT as a method
+    fn high_bit(&self)  -> Self::E { Self::HIGH_BIT   }
+
+    /// Access Self::ORDER as a method
+    fn order(&self)     -> u16     { Self::ORDER      }
+
+    /// Access Self::FIELD_MASK as a method
+    fn field_mask(&self)-> Self::E { Self::FIELD_MASK }
+
+
 }
 
 
-struct F8;
+// 
+pub struct F4{pub poly : u8}
+pub struct F8{pub poly : u8}
+
 
 
 
