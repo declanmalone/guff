@@ -254,7 +254,7 @@ pub trait GaloisField {
     // Note the extra type constraint for conversion E -> EE
     // (I could do something similar for poly/full_poly)
     fn mull(&self, a : Self::E, b : Self::E) -> Self::EE
-    where <Self as GaloisField>::EE: From<<Self as GaloisField>::E>
+    where Self::EE: From<Self::E>
     {
 	let ezero  = Self::E::zero();
 	let eezero = Self::EE::zero();
