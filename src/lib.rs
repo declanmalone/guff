@@ -32,7 +32,7 @@
 //!     
 //!     assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
 //! 
-//!     // The same, but using constructors as syntactic sugar
+//!     // The same, but using a constructor as syntactic sugar
 //!     let f2 = guff::new_gf4(19, 3);
 //!
 //!     assert_eq!(f2.pow(5,3), f2.mul(5,f2.mul(5,5)) );

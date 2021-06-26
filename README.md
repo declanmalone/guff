@@ -16,7 +16,7 @@ fields)
 4. explore various optimisations/adaptations (including
 table-based lookups and architecture-specific SIMD code) that can
 selectively override some/all of the default implementations
-(while remaining compatible with other implementations).
+while remaining compatible with other implementations.
 
 Also to:
 
@@ -27,13 +27,13 @@ kinds of optimisations)
 
 # Basic Use: doing maths in a particular field
 
-As a user, the steps to take to use this library are:
+Steps to using this library:
 
 * decide what "class" of field you want to use (GF(2<sup>8</sup>),
 GF(2<sup>16</sup>), etc.);
 
 * decide if you want to use one of the optimised adaptations or
-are happy with the default, generic code;
+are happy with the default generic code;
 
 * create a new field object (we can call `f`) of that class with
 your chosen field polynomial (aka "irreducible polynomial") by
