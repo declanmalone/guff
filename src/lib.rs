@@ -281,9 +281,9 @@ pub trait GaloisField {
 	let eezero   = Self::EE::zero();
 	let mut poly = self.full_poly()  << (Self::ORDER - 1).into();
 	let mut mask = Self::POLY_BIT    << (Self::ORDER - 1).into();
-	loop {
-	    if a & mask != eezero { a = a ^ poly }
-	    if a < Self::POLY_BIT { return a.into() }
+        loop {
+	    if a & mask != eezero  { a = a ^ poly    }
+	    if a < Self::POLY_BIT  { return a.into() }
 	    mask = mask >> 1;
 	    poly = poly >> 1;
 	}
@@ -305,22 +305,41 @@ pub trait GaloisField {
 }
 
 
-// 
-pub struct F4{pub poly : u8}
-pub struct F8{pub poly : u8}
+// structs which will implement the field
+pub struct F4  { pub full : u8,  pub compact : u8 }
+pub struct F8  { pub full : u16, pub compact : u8 }
+pub struct F16 { pub full : u32, pub compact : u16 }
+pub struct F32 { pub full : u64, pub compact : u32 }
 
+impl GaloisField for F8 {
+    type E = u8;
+    type EE = u16;
 
+    // we have to redeclare types for constants
+    const ORDER      : u16 = 8;
+    const POLY_BIT   : u16 = 0x100;
+    const FIELD_MASK : u8  = 0xff;
+    const HIGH_BIT   : u8  = 0x80;
 
+    // the two required methods (everything else is default)
+    fn poly(&self)      -> u8  { self.compact }
+    fn full_poly(&self) -> u16 { self.full }
+}
 
-
-
-
-
+// Constructor for GF(2<sup>8</sup)
+#[allow(dead_code)]
+pub fn new_gf8(full : u16, compact : u8) -> F8  {
+    F8 {full : full, compact : compact}
+}
 
 #[cfg(test)]
 mod tests {
+
+    use super::*;
+
+
     #[test]
     fn it_works() {
-        assert_eq!(2 + 2, 4);
+	let _f = new_gf8(0x11d, 0x1d);
     }
 }
