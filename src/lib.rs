@@ -51,9 +51,9 @@
 
 
 
-
+//! # Crate Name
 //! 
-//! \* The package name is deliberately hyperbolic:
+//! \* The crate name is deliberately hyperbolic:
 //!
 //! > Noun *guff* - unacceptable behavior (especially ludicrously false statements)
 
