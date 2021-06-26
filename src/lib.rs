@@ -78,7 +78,9 @@ where T : 'static + Copy
     + num::FromPrimitive + num::ToPrimitive
 {}
 
-/// 
+/// Collection of methods needed to implement maths in
+/// GF(2<sup>x</sup>).  Provides (slow) default implementations that
+/// can be overriden by optimised versions.
 pub trait GaloisField {
     /// Natural storage class (u8, u16, u32, etc.) for storing
     /// elements of the field.
@@ -305,10 +307,16 @@ pub trait GaloisField {
 }
 
 
-// structs which will implement the field
+/// A type implementing maths in GF(2<sup>4</sup>)
 pub struct F4  { pub full : u8,  pub compact : u8 }
+
+/// A type implementing maths in GF(2<sup>8</sup>)
 pub struct F8  { pub full : u16, pub compact : u8 }
+	
+/// A type implementing maths in GF(2<sup>16</sup>)
 pub struct F16 { pub full : u32, pub compact : u16 }
+
+/// A type implementing maths in GF(2<sup>32</sup>)
 pub struct F32 { pub full : u64, pub compact : u32 }
 
 impl GaloisField for F4 {
@@ -326,8 +334,9 @@ impl GaloisField for F4 {
     fn full_poly(&self) -> u8  { self.full }
 }
 
-// Constructor for GF(2<sup>4</sup)
+// Constructor for GF(2<sup>4</sup>)
 #[allow(dead_code)]
+/// Create a new  GF(2<sup>4</sup>) field from a given field polynomial
 pub fn new_gf4(full : u8, compact : u8) -> F4  {
     F4 {full : full, compact : compact}
 }
@@ -347,8 +356,9 @@ impl GaloisField for F8 {
     fn full_poly(&self) -> u16 { self.full }
 }
 
-// Constructor for GF(2<sup>8</sup)
+// Constructor for GF(2<sup>8</sup>)
 #[allow(dead_code)]
+/// Create a new  GF(2<sup>8</sup>) field from a given field polynomial
 pub fn new_gf8(full : u16, compact : u8) -> F8  {
     F8 {full : full, compact : compact}
 }
@@ -368,8 +378,9 @@ impl GaloisField for F16 {
     fn full_poly(&self) -> u32 { self.full }
 }
 
-// Constructor for GF(2<sup>16</sup)
+// Constructor for GF(2<sup>16</sup>)
 #[allow(dead_code)]
+/// Create a new  GF(2<sup>16</sup>) field from a given field polynomial
 pub fn new_gf16(full : u32, compact : u16) -> F16  {
     F16 {full : full, compact : compact}
 }
@@ -389,8 +400,9 @@ impl GaloisField for F32 {
     fn full_poly(&self) -> u64 { self.full }
 }
 
-// Constructor for GF(2<sup>32</sup)
+// Constructor for GF(2<sup>32</sup>)
 #[allow(dead_code)]
+/// Create a new  GF(2<sup>32</sup>) field from a given field polynomial
 pub fn new_gf32(full : u64, compact : u32) -> F32  {
     F32 {full : full, compact : compact}
 }
