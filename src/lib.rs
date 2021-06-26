@@ -311,6 +311,27 @@ pub struct F8  { pub full : u16, pub compact : u8 }
 pub struct F16 { pub full : u32, pub compact : u16 }
 pub struct F32 { pub full : u64, pub compact : u32 }
 
+impl GaloisField for F4 {
+    type E = u8;
+    type EE = u8;
+
+    // we have to redeclare types for constants
+    const ORDER      : u16 = 4;
+    const POLY_BIT   : u8  = 0x10;
+    const FIELD_MASK : u8  = 0x0f;
+    const HIGH_BIT   : u8  = 0x08;
+
+    // the two required methods (everything else is default)
+    fn poly(&self)      -> u8  { self.compact }
+    fn full_poly(&self) -> u8  { self.full }
+}
+
+// Constructor for GF(2<sup>4</sup)
+#[allow(dead_code)]
+pub fn new_gf4(full : u8, compact : u8) -> F4  {
+    F4 {full : full, compact : compact}
+}
+
 impl GaloisField for F8 {
     type E = u8;
     type EE = u16;
@@ -332,14 +353,80 @@ pub fn new_gf8(full : u16, compact : u8) -> F8  {
     F8 {full : full, compact : compact}
 }
 
+impl GaloisField for F16 {
+    type E = u16;
+    type EE = u32;
+
+    // we have to redeclare types for constants
+    const ORDER      : u16 = 8;
+    const POLY_BIT   : u32 = 0x10000;
+    const FIELD_MASK : u16 = 0xffff;
+    const HIGH_BIT   : u16 = 0x8000;
+
+    // the two required methods (everything else is default)
+    fn poly(&self)      -> u16 { self.compact }
+    fn full_poly(&self) -> u32 { self.full }
+}
+
+// Constructor for GF(2<sup>16</sup)
+#[allow(dead_code)]
+pub fn new_gf16(full : u32, compact : u16) -> F16  {
+    F16 {full : full, compact : compact}
+}
+
+impl GaloisField for F32 {
+    type E = u32;
+    type EE = u64;
+
+    // we have to redeclare types for constants
+    const ORDER      : u16 = 32;
+    const POLY_BIT   : u64 = 0x100000000;
+    const FIELD_MASK : u32 = 0xffffffff;
+    const HIGH_BIT   : u32 = 0x80000000;
+
+    // the two required methods (everything else is default)
+    fn poly(&self)      -> u32 { self.compact }
+    fn full_poly(&self) -> u64 { self.full }
+}
+
+// Constructor for GF(2<sup>32</sup)
+#[allow(dead_code)]
+pub fn new_gf32(full : u64, compact : u32) -> F32  {
+    F32 {full : full, compact : compact}
+}
+
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
 
+    #[test]
+    fn new_gf4_works() {
+	let f = new_gf4(19, 3);
+	let t = f.mul(1,1);
+	assert_eq!(t, 1)
+    }
 
     #[test]
-    fn it_works() {
-	let _f = new_gf8(0x11d, 0x1d);
+    fn new_gf8_works() {
+	let f = new_gf8(0x11d, 0x1d);
+	let t = f.mul(1,1);
+	assert_eq!(t, 1)
     }
+
+    #[test]
+    fn new_gf16_works() {
+	let f = new_gf16(0x1_002b, 0x2b);
+	let t = f.mul(1,1);
+	assert_eq!(t, 1)
+    }
+
+    #[test]
+    fn new_gf32_works() {
+	let f = new_gf32(0x1_0000_008d, 0x8d);
+	let t = f.mul(1,1);
+	assert_eq!(t, 1)
+    }
+
 }
