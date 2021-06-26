@@ -215,13 +215,21 @@ pub trait GaloisField {
 	let one  : Self::E      = num::one();
 	let mut mask : Self::EE;
 
+	// slight optimisation possible for large powers:
+	// while b > Self::POLY_BIT - Self::EE::one() {
+	//    b = b - (Self::POLY_BIT - Self::EE::one())
+	// }
+	//
+	// Not enabled because I want to be sure routine does what it
+	// should for large b values.
+
 	// identity below only works on field
 	if b == num::zero()
 	// || b == self.field_mask()
 	{ return one }
 	// shift mask right if there are leading zeros
 	// fixup for GF(16) to ignore unused top nibble
-	
+
 	// Since we have mask : EE, subtract any extra leading 0
 
 	// want to move mask right so that it coincides with
@@ -597,7 +605,7 @@ mod tests {
 
 	// Next, use the decomposition 16 = 2**4 = 4**2
 	let obj = new_gf4(19, 3);
-	for a in 0..15 {
+	for a in 0..=15 {
 	    let a2nd = obj.pow(a, 2);
 	    let a4th = obj.pow(a, 4);
 
@@ -613,12 +621,27 @@ mod tests {
 	}
     }
 
+    #[test]
+    fn mod_power_16_directly () {
+	// Originally, couldn't raise a field to a higher power than
+	// could be stored as a field element. Now that is possible,
+	// so test it.
+
+	let obj = new_gf4(19, 3);
+	for a in 2..=15 {
+	    let a15th = obj.pow(a, 15);
+	    let a16th = obj.pow(a, 16); // was impossible before
+
+	    assert_eq!(a16th, obj.mul(a, a15th), "fail for pow({},15/16)", a);
+	}
+    }
+
     // #[test]
     // see why power isn't working ...
     fn _debug_pow() {
 	eprintln!("Testing 2**b for b 0..=15");
 	let obj = new_gf4(19, 3);
-	for i in 0..=15 {
+	for i in 0..=16 {
 	    let res = obj.pow(2, i);
 	    eprintln!("2**{} = {}", i, res)
 	}
@@ -802,7 +825,6 @@ mod tests {
 
     #[test]
     fn call_impl_assoc_type() {
-	// type F = <GF2Order4 as GaloisField>::FieldStore;
 	let f4 = new_gf4(29, 13);
 	test_impl_assoc_type(&f4, 1);
 	let f8 = new_gf4(29, 13);
@@ -811,6 +833,19 @@ mod tests {
 	test_impl_assoc_type(&f16, 2);
 	let f32 = new_gf32(29, 13);
 	test_impl_assoc_type(&f32, 4);
+    }
+
+    // Make sure that long multiply + mod reduce agree with regular
+    // mul method
+    #[test]
+    fn long_mul_mod_reduce_conformance() {
+	let f = new_gf4(19, 3);
+	for a in 0..=15 {
+	    for b in 0..=15 {
+		let longmul = f.mull(a,b);
+		assert_eq!(f.mul(a,b), f.mod_reduce(longmul));
+	    }
+	}
     }
 
 }
