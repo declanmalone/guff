@@ -35,8 +35,25 @@
 //! 
 //! ```
 //! 
+//! # Vector Operations
 //! 
+//! Many applications involving Galois Fields involve working with
+//! vectors of field elements instead of single elements. 
 //! 
+//! * sum of vector elements
+//! * sum of two equal-length vectors
+//! * cross product (pairwise multiplication of elements)
+//! * dot product (sum of cross-product values)
+//! * scaling a vector by a constant
+//! * fused multiply add (scale and sum by a pair of constants across
+//!   vector)
+//! 
+//! These are all implemented using slices of the appropriate
+//! [ElementStore] type. Where necessary, if a vector (slice) type is
+//! to be returned, it must be handled by the user, and a mutable
+//! reference passed to the library. Also note that some operations
+//! (such as scaling a vector) are done in-place, so if the previous
+//! values need to be saved, they should be copied first.
 //! 
 //! 
 //! 
@@ -44,7 +61,8 @@
 //! 
 //! \* The crate name is deliberately hyperbolic:
 //!
-//! > Noun *guff* - unacceptable behavior (especially ludicrously false statements)
+//! > Noun *guff* - unacceptable behavior (especially ludicrously
+//!   false statements)
 
 use num_traits;
 use num::{PrimInt,One,Zero};
@@ -289,8 +307,59 @@ pub trait GaloisField {
 	    poly = poly >> 1;
 	}
     }
-	
-    
+
+    // Vector operations
+    fn vec_sum_elements(&self, v : &[Self::E]) -> Self::E {
+	let mut sum = Self::E::zero();
+	for e in v.iter() {
+            sum = sum ^ *e;
+	}
+	sum
+    }
+
+    fn vec_add_vec_in_place(&self,
+			    dest  : &mut [Self::E],
+			    other : &[Self::E] ) {
+	assert_eq!(dest.len(), other.len());
+	for (d,o) in dest.iter_mut().zip(other) {
+	    *d = *d ^ *o
+	}
+    }
+
+    fn vec_add_vecs_giving_other(&self,
+				 dest  : &mut [Self::E],
+				 a : &[Self::E],
+				 b : &[Self::E]) {
+	assert_eq!(dest.len(), a.len());
+	assert_eq!(a.len(), b.len());
+	for d in dest.iter_mut() {
+	    *d = *a_iter.next().unwrap() ^ *b_iter.next().unwrap()
+	}
+    }
+
+    fn vec_cross_product(&self,
+			    dest : &mut [Self::E],
+			    a : &[Self::E],
+			    b : &[Self::E] ) {
+	assert_eq!(dest.len(), a.len());
+	assert_eq!(a.len(), b.len());
+
+	let (mut a_iter, mut b_iter) = (a.iter(), b.iter());
+	for d in dest.iter_mut() {
+            *d = self.mul(*a_iter.next().unwrap(), *b_iter.next().unwrap())
+	}
+    }
+
+    fn vec_dot_product(&self, a : &[Self::E], b : &[Self::E]) -> Self::E
+    {
+	assert_eq!(a.len(), b.len());
+	let mut sum = Self::E::zero();
+	for (a_item, b_item) in a.iter().zip(b) {
+            sum = sum ^ self.mul(*a_item, *b_item);
+	}
+	sum
+    }
+
     // Other accessors provide syntactic sugar
     
     /// Access Self::HIGH_BIT as a method
