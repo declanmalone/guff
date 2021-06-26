@@ -2,30 +2,6 @@
 //!
 //! Implements GF(2<sup>x</sup>) for various "natural" sizes
 //! such as 2<sup>8</sup>, 2<sup>16</sup> and 2<sup>32</sup>.
-//!
-//! My goals for this crate are to:
-//! 
-//! 1. help me learn to write good modules in Rust
-//! 
-//! 2. help interested users learn about finite fields (ie, Galois
-//! fields)
-//! 
-//! 3. provide a generic baseline implementation of basic maths
-//! (add, multiply, divide, etc.) over finite fields
-//! 
-//! 4. explore various optimisations/adaptations (including
-//! table-based lookups and architecture-specific SIMD code) that can
-//! selectively override some/all of the default implementations
-//! (while remaining compatible with other implementations).
-//! 
-//! Also to:
-//! 
-//! 5. provide some useful utility functions that go beyond just
-//! `add`, `mul`, `div`, etc. (eg, determining whether a field
-//! polynomial is primitive, or generating lookup tables for different
-//! kinds of optimisations)
-//! 
-//! See the top-level `Readme` for more information about the above.
 //! 
 //! # Basic Use: doing maths in a particular field
 //! 
@@ -43,14 +19,27 @@
 //!
 //! * use that object to do maths in that field: eg, `result =
 //! f.mul(a,b)`
-
-
-
-
-
-
-
-
+//! 
+//! 
+//! ```rust
+//! use guff::{GaloisField, F4};
+//! 
+//! fn main() {
+//!     // create a GF(2<sup>4</sup>) field from a struct
+//!     // * `19` is the field's irreducible polynomial
+//!     // * `3` is the same value with bit 0x10 removed
+//!     let f = guff::F4 { full : 19, compact : 3 };
+//!     
+//!     assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
+//! }
+//! 
+//! ```
+//! 
+//! 
+//! 
+//! 
+//! 
+//! 
 //! # Crate Name
 //! 
 //! \* The crate name is deliberately hyperbolic:
@@ -135,13 +124,15 @@ pub trait GaloisField {
     {
 	let poly = self.poly();
 	//   let zero : Self::E = num::NumCast::from(0).unwrap();
-	let zero : Self::E = num::zero();
-	let one  : Self::E = num::one();
+	let zero = Self::E::zero();
+	let one  = Self::E::one();
 	//     let one  = Self::E::one();
 	let field_mask : Self::E    = Self::FIELD_MASK;
 	let high_bit : Self::E      = Self::HIGH_BIT;
 	let mut result : Self::E    = if b & one != zero {a} else { zero };
 	let mut bit : Self::E       = one + one;
+
+	// mask needed in loop only to ensure GF(2**4) works correctly
 	loop {
 	    if a & high_bit != zero {
 	 	// need to apply mask for GF(16)
@@ -211,8 +202,8 @@ pub trait GaloisField {
     
     fn pow(&self, a : Self::E, b : Self::EE) -> Self::E {
 	let mut result : Self::E = a;
-	let zero : Self::EE     = num::zero();
-	let one  : Self::E      = num::one();
+	let zero = Self::EE::zero();
+	let one  = Self::E::one();
 	let mut mask : Self::EE;
 
 	// slight optimisation possible for large powers:
@@ -224,7 +215,7 @@ pub trait GaloisField {
 	// should for large b values.
 
 	// identity below only works on field
-	if b == num::zero()
+	if b == zero
 	// || b == self.field_mask()
 	{ return one }
 	// shift mask right if there are leading zeros
