@@ -441,4 +441,376 @@ mod tests {
 	assert_eq!(t, 1)
     }
 
+    #[test]
+    fn zero_a_mod() {		// make "a" operand zero
+	let obj = new_gf4(19, 3);
+	let mut failed = 0;
+	for i in 0..16 {
+	    if obj.mul(0, i) != 0 { failed += 1 }
+	}
+	if failed > 0 { panic!("GF(16): failed {}/16 tests of a=0 * b", failed) }
+    }
+
+    #[test]
+    fn zero_b_mod() {		// make "b" operand zero
+	let obj = new_gf4(19, 3);
+	let mut failed = 0;
+	for i in 0..16 {
+	    if obj.mul(i, 0) != 0 { failed += 1 }
+	}
+	if failed > 0 { panic!("GF(16): failed {}/16 tests of a * b=0", failed) }
+    }
+
+    #[test]
+    fn one_a_mod() {		// make "a" operand one
+	let obj = new_gf4(19, 3);
+	let mut failed = 0;
+	for i in 0..16 {
+	    if obj.mul(i, 1) != i { failed += 1 }
+	}
+	if failed > 0 { panic!("GF(16): failed {}/16 tests of a=1 * b", failed) }
+    }
+
+    #[test]
+    fn one_b_mod() {		// make "b" operand one
+	let obj = new_gf4(19, 3);
+	let mut failed = 0;
+	for i in 0..16 {
+	    if obj.mul(1, i) != i { failed += 1 }
+	}
+	if failed > 0 { panic!("GF(16): failed {}/16 tests of a * b=1", failed) }
+    }
+
+    // test that ab = ba for all a, b in {2..15}
+    #[test]
+    fn commutative_mod1() {
+	let mut failed = 0;
+	let obj = new_gf4(19, 3);
+	for i in 2..16 {
+	    for j in 2..16 {
+		let result = obj.mul(i,j);
+		if result != obj.mul(j, i) { failed += 1 }
+	    }
+	}
+	if failed > 0 { panic!("GF(16): failed {}/169 commutativity tests", failed) }
+    }
+
+    // We can actually test "straight" multiply so long as we pick
+    // operands that don't overflow, like these
+    #[test]
+    fn x_times_x1_mod1_straight() {
+	let obj = new_gf4(19, 3);
+	let (a, b) = (0b0000_0010, 0b0000_0011);
+	assert_eq!(obj.mul(a,b), 0b0000_0110, "straight x(x+1)");
+    }
+    
+    // another non-overflowing case
+    #[test]
+    fn xx_times_x1_mod1_straight() {
+	let obj = new_gf4(19, 3);
+	let (a, b) = (0b0000_0100, 0b0000_0011);
+	assert_eq!(obj.mul(a,b), 0b0000_1100, "straight xx(x+1)");
+    }
+
+    #[test]
+    fn distributive_1() {
+	let obj = new_gf4(19, 3);
+	let (a, b) = (0b0000_0011, 0b0000_1010);
+	// first just call multiply on a, b
+	let result = obj.mul(a, b);
+
+	// now check that the distributive property held
+	let check =  obj.add(obj.mul(0b0000_0010, b),
+			     obj.mul(0b0000_0001, b));
+	assert_eq!(result, check, "distributive 1");
+    }
+
+    #[test]
+    fn distributive_2() {
+	let obj = new_gf4(19, 3);
+	let (a, b) = (0b0000_1010, 0b0000_1111);
+	// first just call multiply on a, b
+	let result = obj.mul(a, b);
+
+	// now check that the distributive property held
+	let check =  obj.add(obj.mul(0b0000_1000, b),
+			     obj.mul(0b0000_0010, b));
+	assert_eq!(result, check, "distributive 2");
+    }
+
+    // This test is about generators, but it only calls pow()
+    #[test]
+    fn generator_should_loop () {
+	// values emitted from known_fields_have_generators() test
+	let poly_19_known_gs = vec![2u8, 3, 4, 5, 9, 11, 13, 14];
+	let poly_25_known_gs = vec![2u8, 4, 6, 7, 9, 12, 13, 14];
+	let poly_31_known_gs = vec![3u8, 5, 6, 7, 9, 10, 11, 14];
+
+	// writing a new bootstrap_mod_power fn for this, which I will
+	// test separately. For now, make it a stub that causes this
+	// test to pass!
+
+	for (poly, gens) in [(19u8, poly_19_known_gs),
+			     (25u8, poly_25_known_gs),
+			     (31u8, poly_31_known_gs) ].iter() {
+	    // if the generator "wraps around" correctly then:
+	    // g ** 15 = 1
+	    // g ** 16 = g ** 1 = g
+
+	    for g in gens {
+		let obj = new_gf4(*poly, *poly - 16);
+		assert_eq!(1, obj.pow(*g, 15),
+			   "poly,generator ({}, {}) failed g ** 15 = 1", *poly, *g);
+		// can't call second part of test because it messes up
+		// clz() call in pow for GF(16). Actually, this is a
+		// problem in general, since I pass second operand as
+		// type T, when it should really be P. Need a more
+		// robust clz() that is aware of word size and field
+		// size.  I don't feel like fixing this now because
+		// it's going to open up the type conversion can of
+		// worms again.
+		
+		assert_eq!(*g, obj.pow(*g, 16),
+			   "poly,generator ({}, {}) failed g ** 16 = g", *poly, *g);
+	    }
+	}
+    }
+
+
+    #[test]
+    fn mod_power_15() { // was failing
+	let obj = new_gf4(19, 3);
+	for a in 0..15 {
+	    let direct = obj.pow(a, 15);
+
+	    let indirect_5 = obj.pow(a, 5);
+	    let indirect_15 = obj.pow(indirect_5, 3);
+
+	    assert_eq!(direct, indirect_15, "a = {}", a);
+	}
+    }
+    
+    #[test]
+    fn mod_power_16 () { // was failing, but note that we still can't
+	// raise to 16th power directly. Code changes needed to
+	// support that.
+
+	// Next, use the decomposition 16 = 2**4 = 4**2
+	let obj = new_gf4(19, 3);
+	for a in 0..15 {
+	    let a2nd = obj.pow(a, 2);
+	    let a4th = obj.pow(a, 4);
+
+	    assert_eq!(a4th, obj.pow(a2nd, 2));
+
+	    let ans_1 = obj.pow(a4th, 4);
+
+	    // other decomposition a**4 * a**4 * a**4 * a**4
+	    let a8th = obj.mul(a4th, a4th);
+	    let a16th = obj.pow(a8th, 2);
+
+	    assert_eq!(ans_1, a16th);
+	}
+    }
+
+    // #[test]
+    // see why power isn't working ...
+    fn _debug_pow() {
+	eprintln!("Testing 2**b for b 0..=15");
+	let obj = new_gf4(19, 3);
+	for i in 0..=15 {
+	    let res = obj.pow(2, i);
+	    eprintln!("2**{} = {}", i, res)
+	}
+    }
+
+    
+    // For order 8, I can copy/paste some tests from gf_2p8 crate
+    #[test]
+    fn test_new_gf8() {
+	let obj = F8 { full : 0x11b, compact : 0x1b };
+	let test = obj.mul(1,1);
+	assert_eq!(test, 1);
+    }
+
+    #[test]
+    fn new_field_from_new() {
+	let f = new_gf8(0x11b, 0x1b);
+	assert_eq!(8, F8::ORDER, "access ORDER associated type");
+	assert_eq!(0x11b, f.full_poly(), "access full_poly method");
+    }    
+    
+    #[test]
+    fn test_multiply_53_ca() {
+	assert_eq!(1, new_gf8(0x11b, 0x1b).mul(0x53, 0xCA))
+    }
+    
+    #[test]
+    fn test_multiply_00_00() {
+	assert_eq!(0, new_gf8(0x11b, 0x1b).mul(0x00, 0x00))
+    }
+    
+    #[test]
+    fn test_multiply_00_01() {
+	assert_eq!(0, new_gf8(0x11b, 0x1b).mul(0x00, 0x01))
+    }
+    
+    #[test]
+    fn test_multiply_01_01() {
+	assert_eq!(1, new_gf8(0x11b, 0x1b).mul(0x01, 0x01))
+    }
+    
+    #[test]
+    fn test_multiply_01_02() {
+	assert_eq!(2, new_gf8(0x11b, 0x1b).mul(0x01, 0x02))
+    }
+
+    #[test]
+    fn test_inv_01() {
+	assert_eq!(1, new_gf8(0x11b, 0x1b).inv(0x01))
+    }
+
+    #[test]
+    fn test_inv_53() {
+	assert_eq!(0xca, new_gf8(0x11b, 0x1b).inv(0x53))
+    }
+
+    #[test]
+    fn test_inv_ca() {
+	assert_eq!(0x53, new_gf8(0x11b, 0x1b).inv(0xca))
+    }
+
+    #[test]
+    fn test_div_01_53() {
+	assert_eq!(0xca, new_gf8(0x11b, 0x1b).div(1,0x53))
+    }
+
+    #[test]
+    fn test_div_01_ca() {
+	assert_eq!(0x53, new_gf8(0x11b, 0x1b).div(1,0xca))
+    }
+
+    // for powers, we (I) know that 3 is a generator, so:
+    // 3**0 == 3**255 = 1
+    // 3**-1 == 3**254 = inv(3)
+    //
+    // we can't pass in negative powers, though...
+    #[test]
+    fn test_pow_3_0() {
+	assert_eq!(0x01, new_gf8(0x11b, 0x1b).pow(3,0))
+    }
+    
+    #[test]
+    fn test_pow_3_255() {
+	assert_eq!(0x1, new_gf8(0x11b, 0x1b).pow(3,255))
+    }
+    
+    #[test]
+    fn test_pow_3_254() {
+	let f = new_gf8(0x11b, 0x1b);
+	assert_eq!(f.pow(3,254), f.inv(3))
+    }
+
+    // compare power with multiplication
+    #[test]
+    fn test_pow_7_2() {
+	let f = new_gf8(0x11b, 0x1b);
+	assert_eq!(f.pow(7,2), f.mul(7,7))
+    }
+    
+    #[test]
+    fn test_pow_7_3() {
+	let f = new_gf8(0x11b, 0x1b);
+	assert_eq!(f.pow(7,3), f.mul(f.pow(7,2),7))
+    }
+    
+    // special case: 0**0 = 1
+    #[test]
+    fn test_pow_0_0() {
+	let f = new_gf8(0x11b, 0x1b);
+	assert_eq!(1,f.pow(0,0))
+    }
+
+    // special case: 1/0 = 0 (undefined behaviour!)
+    #[test]
+    fn test_div_0_0() {
+	let f = new_gf8(0x11b, 0x1b);
+	assert_eq!(0,f.div(0,0))
+    }
+
+    // related cases: non-zero / zero = 0 (also UB)
+    #[test]
+    fn test_div_i_0() {
+	let f = new_gf8(0x11b, 0x1b);
+	for i in 1..=255 {
+	    assert_eq!(0,f.div(i,0))
+	}
+    }
+
+    // additional: make sure pow(a,256), pow(a,257) works in this
+    // field
+    #[test]
+    fn test_pow_257() {
+	let f = F8 { full : 0x11b, compact : 0x1b };
+	let a = f.pow(12,254);
+	let b = f.pow(12,255);
+	let c = f.pow(12,256);
+	let d = f.pow(12,257);
+	assert_eq!(b,f.mul(a,12));
+	assert_eq!(c,f.mul(b,12));
+	assert_eq!(d,f.mul(c,12));
+    }
+
+    #[test]
+    fn test_new_gf16() {
+	let obj = new_gf16(0x1002b, 0x2b);
+	let test = obj.mul(1,1);
+	assert_eq!(test, 1);
+    }
+
+    #[test]
+    fn test_new_gf32() {
+	let obj = new_gf32(0x10000008d, 0x8d);
+	let test = obj.mul(1,1);
+	assert_eq!(test, 1);
+    }
+
+    #[test]
+    fn access_assoc_type() {
+	type F = <F8 as GaloisField>::E;
+	let _a : F = 1;
+	assert_eq!(1, std::mem::size_of::<F>());
+    }
+
+    // getting access to the internal associated type is
+    // not easy. Giving up for now.
+    //
+    // "cannot provide explicit generic arguments when `impl Trait` is
+    // used in argument position"
+
+    fn test_impl_assoc_type<T>(_f : & T, s : usize)
+    where T : GaloisField
+    {
+	//type Y = T::FieldStore;
+	let one : T::E = T::E::one();
+	let mut _a : T::E = num::NumCast::from(1).unwrap();
+	// cannot infer type:
+	// let mut a : T::FieldStore = From::from(1);
+	_a = _a + one;
+	assert_eq!(s, std::mem::size_of::<T::E>());
+    }
+
+    #[test]
+    fn call_impl_assoc_type() {
+	// type F = <GF2Order4 as GaloisField>::FieldStore;
+	let f4 = new_gf4(29, 13);
+	test_impl_assoc_type(&f4, 1);
+	let f8 = new_gf4(29, 13);
+	test_impl_assoc_type(&f8, 1);
+	let f16 = new_gf16(29, 13);
+	test_impl_assoc_type(&f16, 2);
+	let f32 = new_gf32(29, 13);
+	test_impl_assoc_type(&f32, 4);
+    }
+
 }
