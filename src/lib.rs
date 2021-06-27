@@ -371,6 +371,24 @@ pub trait GaloisField {
 	sum
     }
 
+    fn vec_constant_scale_in_place(&self,
+				   dest : &mut [Self::E],
+				   a    : Self::E) {
+	for d in dest.iter_mut() {
+            *d = self.mul(*d,  a)
+	}
+    }
+
+    fn vec_fma_in_place(&self,
+			dest : &mut [Self::E],
+			a    : Self::E,
+			b    : Self::E ) {
+	for d in dest.iter_mut() {
+            *d = self.mul(*d, a) ^ b;
+	}
+    }
+
+
     // Other accessors provide syntactic sugar
     
     /// Access Self::HIGH_BIT as a method
