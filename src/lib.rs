@@ -199,14 +199,16 @@ pub trait GaloisField {
 	let mut z : Self::E = zero;
 	let mut g : Self::E = one;
 	let mut t : Self::E;	// always set before being used
+	let mask = self.field_mask();
 	// special cases of 1/1 and 1/0
 	if a == zero || a == one { return a }
 	// unroll first loop iteration (knowing initial i >= 0)
 	// rustc can't determine that i is always positive here,
 	// though, so we have to try_into()
-	let mut i : u32 = 1 + v.leading_zeros();
-	u = u ^ v << i as usize;
-	z = z ^ g << i as usize;
+	let fixup = if self.order() == 4 { 4 } else { 0 };
+	let mut i : u32 = 1 + v.leading_zeros() - fixup;
+	u = (u ^ v << i as usize) & mask;
+	z = (z ^ g << i as usize) & mask;
 	while u != one {
 	    // in C: i=size_in_bits(u) - size_in_bits(v)
 	    // size_in_bits is order - leading zeroes
@@ -223,8 +225,8 @@ pub trait GaloisField {
 		//		    i = v.leading_zeros() - u.leading_zeros();
 	    }
 	    i = v.leading_zeros() - u.leading_zeros();
-	    u = u ^ v << i as usize;
-	    z = z ^ g << i as usize;
+	    u = (u ^ v << i as usize) & mask;
+	    z = (z ^ g << i as usize) & mask;
 	}
 	z
     }
@@ -942,4 +944,13 @@ mod tests {
 	}
     }
 
+    #[test]
+    fn test_gf8_inverses() {
+	let f = new_gf8(0x11b, 0x1b);
+	for a in 0..=255 {
+	    let inv = f.inv(a);
+	    let invinv = f.inv(inv);
+	    assert_eq!(a, invinv);
+	}
+    }
 }

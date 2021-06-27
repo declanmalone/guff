@@ -99,13 +99,12 @@ fn fill_inverse<T>(f : & T,
     let mut elem = T::E::zero();
     v.push(elem);
     for _count in 1..=max {
-	eprintln!("_count: {} ", _count);
+	// eprintln!("_count: {} ", _count);
 	elem = elem + T::E::one();
-	eprintln!("_count: {}, elem: {}", _count, elem);
+	// eprintln!("_count: {}, elem: {}", _count, elem);
 	v.push(f.inv(elem));
-	eprintln!("_count: {} ", _count);
+	// eprintln!("_count: {} ", _count);
     }
-	panic!();
 }
 
 // "good" F4 with fixed poly 0x13 using above mul table
