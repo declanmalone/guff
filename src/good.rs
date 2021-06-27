@@ -86,7 +86,27 @@ where G : GaloisField, G::E : Into<usize>
 
 // Note that I didn't have to make the above generic on a particular
 // GaloisField implementor, and in fact it probably did make the job
-// harder than it should have been. Here's an alternative way
+// harder than it should have been. Here's an alternative way. It
+// doesn't cut our dependence on GaloisField, but at least there's
+// less faffing around getting max (and other counting numbers, if we
+// had needed them)
+
+fn fill_inverse<T>(f : & T,
+		   v : &mut Vec<T::E>, max : usize)
+    where T : GaloisField
+{
+    eprintln!("max is {}", max);
+    let mut elem = T::E::zero();
+    v.push(elem);
+    for _count in 1..=max {
+	eprintln!("_count: {} ", _count);
+	elem = elem + T::E::one();
+	eprintln!("_count: {}, elem: {}", _count, elem);
+	v.push(f.inv(elem));
+	eprintln!("_count: {} ", _count);
+    }
+	panic!();
+}
 
 // "good" F4 with fixed poly 0x13 using above mul table
 pub struct F4_0x13 {
@@ -119,12 +139,25 @@ impl GaloisField for F4_0x13 {
 	self.mul_lut.mul(a,b)
     }
 
-    // to do: make a generic inverse table and add here
+    fn inv(&self, a : Self::E) -> Self::E
+    {
+	// can use 'a as usize' since its type is known to be u8
+	self.inv_lut[a as usize]
+    }
 }
 
 pub fn new_gf4_0x13() -> F4_0x13 {
+    // reference field object
     let f = crate::new_gf4(19,3);
-    F4_0x13 { mul_lut : FullMulLUT::<crate::F4>::new(&f) }
+    // generate inverse table
+    let mut inv = Vec::<u8>::with_capacity(16);
+
+    fill_inverse(&f, &mut inv, 15);
+    
+    F4_0x13 {
+	mul_lut : FullMulLUT::<crate::F4>::new(&f),
+	inv_lut : inv,
+    }
 }
 
 
@@ -168,7 +201,7 @@ mod tests {
     use crate::new_gf4;
 
     #[test]
-    fn new_f4_0x13_conformance() {
+    fn test_f4_0x13_mul_conformance() {
 	let f4      = new_gf4(19,3);
 	let f4_0x13 = new_gf4_0x13();
 	let mut fails = 0;
@@ -177,6 +210,19 @@ mod tests {
 		if f4.mul(i,j) != f4_0x13.mul(i,j) {
 		    fails += 1;
 		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    #[test]
+    fn test_f4_0x13_inv_conformance() {
+	let f4      = new_gf4(19,3);
+	let f4_0x13 = new_gf4_0x13();
+	let mut fails = 0;
+	for i in 0..16 {
+	    if f4.inv(i) != f4_0x13.inv(i) {
+		fails += 1;
 	    }
 	}
 	assert_eq!(fails, 0);

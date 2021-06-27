@@ -24,20 +24,19 @@
 //! ```rust
 //! use guff::{GaloisField, F4, new_gf4};
 //! 
-//! fn main() {
-//!     // Create a GF(2<sup>4</sup>) field from a struct
-//!     // * `19` is the field's irreducible polynomial
-//!     // * `3` is the same value with bit 0x10 removed
-//!     let f = guff::F4 { full : 19, compact : 3 };
-//!     
-//!     assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
+//! // Create a GF(2<sup>4</sup>) field from a struct
+//! // * `19` is the field's irreducible polynomial
+//! // * `3` is the same value with bit 0x10 removed
+//! let f = guff::F4 { full : 19, compact : 3 };
 //! 
-//!     // The same, but using a constructor as syntactic sugar
-//!     let f2 = guff::new_gf4(19, 3);
+//! assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
+//! 
+//! // The same, but using a constructor as syntactic sugar
+//! let f2 = guff::new_gf4(19, 3);
 //!
-//!     assert_eq!(f2.pow(5,3), f2.mul(5,f2.mul(5,5)) );
-//!     assert_eq!(f.pow(5,3), f2.pow(5,3));
-//! }
+//! assert_eq!(f2.pow(5,3), f2.mul(5,f2.mul(5,5)) );
+//! assert_eq!(f.pow(5,3), f2.pow(5,3));
+//! 
 //! 
 //! ```
 //!
@@ -74,8 +73,10 @@
 //! > Noun *guff* - unacceptable behavior (especially ludicrously
 //!   false statements)
 
-use num_traits;
+//use num_traits;
 use num::{PrimInt,One,Zero};
+
+pub mod good;
 
 /// A typing trait meant to map to a primitive unsigned integer type
 /// such as u8, u16 or u32.
@@ -436,7 +437,7 @@ impl GaloisField for F4 {
 /// Create a new GF(2<sup>4</sup>) field with a supplied field
 /// polynomial (using the default implementation)
 pub fn new_gf4(full : u8, compact : u8) -> F4  {
-    F4 {full : full, compact : compact}
+    F4 {full, compact}
 }
 
 impl GaloisField for F8 {
@@ -459,7 +460,7 @@ impl GaloisField for F8 {
 /// Create a new GF(2<sup>8</sup>) field with a supplied field
 /// polynomial (using the default implementation)
 pub fn new_gf8(full : u16, compact : u8) -> F8  {
-    F8 {full : full, compact : compact}
+    F8 {full, compact}
 }
 
 impl GaloisField for F16 {
@@ -482,7 +483,7 @@ impl GaloisField for F16 {
 /// Create a new GF(2<sup>16</sup>) field with a supplied field
 /// polynomial (using the default implementation)
 pub fn new_gf16(full : u32, compact : u16) -> F16  {
-    F16 {full : full, compact : compact}
+    F16 { full, compact }
 }
 
 impl GaloisField for F32 {
@@ -505,7 +506,7 @@ impl GaloisField for F32 {
 /// Create a new GF(2<sup>32</sup>) field with a supplied field
 /// polynomial (using the default implementation)
 pub fn new_gf32(full : u64, compact : u32) -> F32  {
-    F32 {full : full, compact : compact}
+    F32 { full, compact }
 }
 
 
