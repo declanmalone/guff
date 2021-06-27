@@ -2,12 +2,13 @@
 
   Initial placeholder version.
 
-0.1.3
+0.1.2
 
   Add structs implementing GaloisField and constructors.
-  Add README and unit tests.
+  Add README.md and unit tests.
 
-0.1.4
+0.1.3
 
-  Add vector operations and refine documentation.
+  Add vector operations.
+  Refine documentation.
 
