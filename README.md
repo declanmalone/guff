@@ -5,13 +5,13 @@ such as 2<sup>8</sup>, 2<sup>16</sup> and 2<sup>32</sup>.
 
 My goals for this crate are to:
 
-1. help me learn to write good modules in Rust
+1. help me learn to write good modules in Rust;
 
 2. help interested users learn about finite fields (ie, Galois
-fields)
+fields);
 
 3. provide a generic baseline implementation of basic maths
-(add, multiply, divide, etc.) over finite fields
+(add, multiply, divide, etc.) over finite fields;
 
 4. explore various optimisations/adaptations (including
 table-based lookups and architecture-specific SIMD code) that can
@@ -23,7 +23,12 @@ Also to:
 5. provide some useful utility functions that go beyond just
 `add`, `mul`, `div`, etc. (eg, determining whether a field
 polynomial is primitive, or generating lookup tables for different
-kinds of optimisations)
+kinds of optimisations);
+
+6. eat my own dog food by implementing various applications that use
+   the library;
+
+7. benchmark particular implementations of interest.
 
 # Basic Use: doing maths in a particular field
 
