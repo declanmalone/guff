@@ -56,7 +56,7 @@ f.mul(a,b)`
 
 # Copyright and Licence
 
-This work is Copyright (C) Declan Malone, 2021.
+This work is Copyright (c) Declan Malone, 2021.
 
 You may freely copy and modify this work under the terms of:
 
