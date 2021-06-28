@@ -205,13 +205,15 @@ where G : GaloisField,
       G::E : Into<usize>,
       G::E : Into<G::SEE>,
       G::SEE : Into<isize>,
-      G::SEE : From<isize>,
+//      G::SEE : From<isize>,
+//      G::SEE : From<usize>,
       G::E : std::fmt::Debug
 {
     fn new(f : &G, g : G::E ) -> BigLogExpTables<G> {
 
 	// eg, for GF256, log_size = 256, exp_size = 1024
 	let log_size = 1 << (G::ORDER as usize);
+	let see_log_size : G::SEE = G::SEE::one() << (G::ORDER as usize);
 	let exp_size = log_size * 4;
 	let exp_entry;
 
@@ -234,8 +236,9 @@ where G : GaloisField,
 	// exp 0 = 1
 	exp.push(G::E::zero());
 	// log 0 = -256
-	log[i] = (- (log_size as isize)).into();
-	
+//	log[i] = (- (log_size as isize)).into();
+	log[i] = G::SEE::zero() - see_log_size;
+
 	// exp 1 = generator
 	exp.push(g);
 	// log g = 1
