@@ -31,8 +31,10 @@
 
   Start using Criterion for benchmarking.
 
-  Benchmark guff::good fields versus reference.
+  Benchmark guff::good gf(16) fields versus reference.
 
   Add good gf(2**8) implementation (+test/benchmark)
 
-  Warning about exp_entry not being used is OK.
+  Warning about exp not being used is OK (access via exp_entry).
+
+  Surprisingly, log/exp implementation is not faster than reference.

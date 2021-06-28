@@ -305,11 +305,15 @@ where G : GaloisField,
 	let log_a : isize;
 	let log_b : isize;
 	unsafe {
+	    // safe because log table has entry for each field element
 	    log_a = (*self.log.get_unchecked(usize_a)).into();
 	    log_b = (*self.log.get_unchecked(usize_b)).into();
+	    // safe because log_a + log_b within exp table bounds:
+	    // -512 ... 510
+	    *(self.exp_entry.offset(log_a + log_b))
 	}
 	// replace with unsafe after testing ...
-	self.exp[(512 + log_a + log_b) as usize]
+	//	self.exp[(512 + log_a + log_b) as usize]
     }
     // can also implement inv, div, pow with these tables!
 }
@@ -348,6 +352,7 @@ impl GaloisField for F8_0x11b {
     fn full_poly(&self) -> u16  { 0x11b }
 
     // pass mul call on to table
+//    #[inline(always)]
     fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
 	self.tables.mul(a,b)
     }
