@@ -113,6 +113,8 @@ pub trait GaloisField {
     /// * storing the result of a non-modular (overflowing) multiply
     /// of two field elements
     type EE : ElementStore; // where Self::EE : From<Self::E>;
+    /// As EE, but signed
+    type SEE : ElementStore; // where Self::EE : From<Self::E>;
 
     /// Size of the field in bits, eg GF(2<sup>8</sup>) &rarr; 8
     const ORDER      : u16;
@@ -422,6 +424,7 @@ pub struct F32 { pub full : u64, pub compact : u32 }
 impl GaloisField for F4 {
     type E = u8;
     type EE = u8;
+    type SEE = i8;
 
     // we have to redeclare types for constants
     const ORDER      : u16 = 4;
@@ -445,6 +448,7 @@ pub fn new_gf4(full : u8, compact : u8) -> F4  {
 impl GaloisField for F8 {
     type E = u8;
     type EE = u16;
+    type SEE = i16;
 
     // we have to redeclare types for constants
     const ORDER      : u16 = 8;
@@ -468,6 +472,7 @@ pub fn new_gf8(full : u16, compact : u8) -> F8  {
 impl GaloisField for F16 {
     type E = u16;
     type EE = u32;
+    type SEE = i32;
 
     // we have to redeclare types for constants
     const ORDER      : u16 = 8;
@@ -491,6 +496,7 @@ pub fn new_gf16(full : u32, compact : u16) -> F16  {
 impl GaloisField for F32 {
     type E = u32;
     type EE = u64;
+    type SEE = i64;
 
     // we have to redeclare types for constants
     const ORDER      : u16 = 32;

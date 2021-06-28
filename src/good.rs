@@ -60,7 +60,6 @@ use num::{One,Zero};
 // wrt GaloisField. However, it works!
 struct FullMulLUT<G> where G : GaloisField {
     table  : Vec<G::E>,
-    bits   : usize,
 }
 impl<G> FullMulLUT<G>
 where G : GaloisField, G::E : Into<usize>
@@ -88,11 +87,10 @@ where G : GaloisField, G::E : Into<usize>
 	    }
 	    a = a + one;
 	}
-	FullMulLUT::<G> { bits : f.order() as usize, table : v }
+	FullMulLUT::<G> { table : v }
     }
     #[inline(always)]
     fn mul(&self, a : G::E, b : G::E) -> G::E {
-	// let index : usize = (a.into() << self.bits) + b.into();
 	let index : usize = (a.into() << G::ORDER) + b.into();
 	// Can't do unsafe access without ensuring a,b < 16: 
 	// unsafe {
@@ -143,6 +141,7 @@ pub struct F4_0x13 {
 impl GaloisField for F4_0x13 {
     type E = u8;
     type EE = u8;
+    type SEE = i8;
 
     // we have to redeclare types for constants
     const ORDER      : u16 = 4;
@@ -191,8 +190,156 @@ pub fn new_gf4_0x13() -> F4_0x13 {
 // * rest supplied by default
 
 // This presents a difficulty because we don't store signed versions
-// of types in GaloisField.
+// of types in GaloisField. It's not beyond the bounds of possibility
+// that we would use log/exp tables for field sizes up to u16. As a
+// result, it's probably worth making the table creation function
+// generic instead of repeating it for u4, u8 and u16.
 
+struct BigLogExpTables<G> where G : GaloisField {
+    log  : Vec<G::SEE>,
+    exp  : Vec<G::E>,
+    exp_entry : *const G::E,
+}
+impl<G> BigLogExpTables<G>
+where G : GaloisField,
+      G::E : Into<usize>,
+      G::E : Into<G::SEE>,
+      G::SEE : Into<isize>,
+      G::SEE : From<isize>,
+      G::E : std::fmt::Debug
+{
+    fn new(f : &G, g : G::E ) -> BigLogExpTables<G> {
+
+	// eg, for GF256, log_size = 256, exp_size = 1024
+	let log_size = 1 << (G::ORDER as usize);
+	let exp_size = log_size * 4;
+	let exp_entry;
+
+	// add to exp sequentially, to log randomly
+	let zero = G::SEE::zero();
+	let mut exp : Vec<G::E>   = Vec::<_>::with_capacity(exp_size);
+	let mut log : Vec<G::SEE> = vec![zero ; log_size];
+
+	// for gf(256), add 512 zeros
+	for _ in 0..log_size * 2 {
+	    exp.push(G::E::zero());
+	}
+	unsafe {
+	    // offset 512 from start of exp, which is within bounds
+	    exp_entry = exp.as_ptr().offset(log_size as isize * 2);
+	}
+
+	// first bunch of entries
+	let mut i : usize = 0;
+	// exp 0 = 1
+	exp.push(G::E::zero());
+	// log 0 = -256
+	log[i] = (- (log_size as isize)).into();
+	
+	// exp 1 = generator
+	exp.push(g);
+	// log g = 1
+	let usize_g : usize = g.into();
+	log[i + usize_g] = G::SEE::one();
+
+	// usize loop counter and G::SEE one
+	i += 2;
+	let mut ei = G::SEE::one() + G::SEE::one();
+	let mut p = g;			// running product
+	loop {
+	    if p == G::E::one() {
+		panic!("{} is not a generator for this field", g)
+	    }
+
+	    p = f.mul(p,g);
+	    exp.push(p);
+	    let usize_p : usize = p.into();
+	    log[usize_p] = ei;
+	    i += 1; ei = ei + G::SEE::one();
+	    if i == log_size { break }
+	}
+
+	// We have inserted all log table entries.
+	// 
+	// exp entries currently stand at:
+	//
+	// 512 zero values
+	// g ** 0 = 1
+	// g ** 1 = g
+	// ...
+	// g ** 255 = 1
+	//
+	// We now have to add values starting at g again, finally
+	// finishing with another g (last two entries are optional:
+	// since max sum of logs is 255 + 255, they will never be
+	// accessed from mul)
+	assert_eq!(p, G::E::one());
+	for _ in 0..log_size {
+	    p = f.mul(p,g);
+	    exp.push(p);
+	}
+	assert_eq!(p,g);
+	assert_eq!(exp_size, exp.len());
+	
+	BigLogExpTables::<G> { log, exp, exp_entry }
+    }
+    #[inline(always)]
+    fn mul(&self, a : G::E, b : G::E) -> G::E
+    {
+	let usize_a : usize = a.into();
+	let usize_b : usize = b.into();
+	let log_a : isize = self.log[usize_a].into();
+	let log_b : isize = self.log[usize_b].into();
+	// replace with unsafe after testing ...
+	self.exp[(512 + log_a + log_b) as usize]
+    }
+    // can also implement inv, div, pow with these tables!
+}
+
+// I will implement two fields here:
+//
+// 0x11b : non-primitive. It's the one I often use. It's also the poly
+// used in AES. Has generator `3`
+//
+// 0x11d : primitive poly, so could be more useful in other
+// applications. Since it's primitive, the generator is `2`
+
+// I'll follow the same process as with the GF(16) poly above. Note
+// that no memory is allocated for any of these fields unless the user
+// calls the constructor. There is the overhead for making a concrete
+// u8 version of the BigLogExpTables code, though.
+
+#[doc(hidden)]
+pub struct F8_0x11b {
+    tables : BigLogExpTables::<crate::F8>,
+}
+
+impl GaloisField for F8_0x11b {
+    type E = u8;
+    type EE = u16;
+    type SEE = i16;
+
+    // we have to redeclare types for constants
+    const ORDER      : u16 = 8;
+    const POLY_BIT   : u16 = 0x100;
+    const FIELD_MASK : u8  = 0xff;
+    const HIGH_BIT   : u8  = 0x80;
+
+    // the two required methods (everything else is default)
+    fn poly(&self)      -> u8   { 0x1b }
+    fn full_poly(&self) -> u16  { 0x11b }
+
+    // pass mul call on to table
+    fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
+	self.tables.mul(a,b)
+    }
+
+//    fn inv(&self, a : Self::E) -> Self::E
+//    {
+//	// can use 'a as usize' since its type is known to be u8
+//	self.inv_lut[a as usize]
+//    }
+}
 
 //
 // GF(2<sup>16</sup>):
