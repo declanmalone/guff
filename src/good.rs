@@ -344,6 +344,18 @@ impl GaloisField for F8_0x11b {
 //    }
 }
 
+/// Optimised maths for GF(2<sup>4</sup>) with the (primitive) polynomial 0x13
+pub fn new_gf8_0x11b() -> F8_0x11b {
+    // reference field object
+    let f = crate::new_gf8(0x11b,0x1b);
+    
+    F8_0x11b {
+	tables : BigLogExpTables::<crate::F8>::new(&f, 3),
+    }
+}
+
+
+
 //
 // GF(2<sup>16</sup>):
 //
@@ -374,7 +386,7 @@ impl GaloisField for F8_0x11b {
 mod tests {
 
     use super::*;
-    use crate::new_gf4;
+    use crate::{new_gf4, new_gf8};
 
     #[test]
     fn test_f4_0x13_mul_conformance() {
@@ -404,4 +416,18 @@ mod tests {
 	assert_eq!(fails, 0);
     }
 
+    #[test]
+    fn test_f8_0x11b_mul_conformance() {
+	let f8       = new_gf8(0x11b,0x1b);
+	let f8_0x11b = new_gf8_0x11b();
+	let mut fails = 0;
+	for i in 0..=255 {
+	    for j in 0..=255 {
+		if f8.mul(i,j) != f8_0x11b.mul(i,j) {
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
 }
