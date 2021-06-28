@@ -25,8 +25,8 @@ Also to:
 polynomial is primitive, or generating lookup tables for different
 kinds of optimisations);
 
-6. eat my own dog food by implementing various applications that use
-   the library;
+6. eat my own dog food, so to speak, by implementing various
+   applications that use the library;
 
 7. benchmark particular implementations of interest.
 

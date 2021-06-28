@@ -5,10 +5,24 @@
 0.1.2
 
   Add structs implementing GaloisField and constructors.
+
   Add README.md and unit tests.
 
 0.1.3
 
   Add vector operations (no unit testing yet).
+
   Refine documentation.
 
+0.1.4
+
+  Add new guff::good module, to contain "reasonable" set of optimised
+  maths implementations.
+
+  Add optimised GF(2**4) implementation for field poly 0x13 there,
+  backed by two generic lookup table types (for inv and mul).
+
+  Fix bug in default implementation when calculating inverses in
+  GF(2**4).
+
+  Clean bill of clippy health.

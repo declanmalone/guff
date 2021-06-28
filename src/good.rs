@@ -15,12 +15,24 @@
 //!
 //! The actual implementation used here may change over time. In fact,
 //! some of the fields may even default to using the reference
-//! implementation for some calculations. 
+//! implementation for some calculations. It can be assumed, however,
+//! that at least the `mul` routines implemented by objects here will
+//! be faster than the corresponding reference implementation, since
+//! this is usually the method that will be called most often in an
+//! application.
 //!
+//! # SemVer implications
 //!
+//! Once I have added a constructor here, it will continue to be
+//! available across all minor versions of the library. In other
+//! words, in terms of semantic versioning, removing a constructor
+//! here counts as breaking the application interface.
 //!
-//!
-//!
+//! However, no guarantees are made as to how the optimised version
+//! works internally. In particular, no guarantee of speed is made.
+//! Nor should the contents of the `struct` implementing the method be
+//! considered part of the application interface. That can change at
+//! any time.
 //!
 //!
 //!
@@ -91,6 +103,9 @@ where G : GaloisField, G::E : Into<usize>
 // less faffing around getting max (and other counting numbers, if we
 // had needed them)
 
+// Also, note that we're just using a function instead of a full
+// struct/impl combo.
+
 fn fill_inverse<T>(f : & T,
 		   v : &mut Vec<T::E>, max : usize)
     where T : GaloisField
@@ -99,15 +114,14 @@ fn fill_inverse<T>(f : & T,
     let mut elem = T::E::zero();
     v.push(elem);
     for _count in 1..=max {
-	// eprintln!("_count: {} ", _count);
 	elem = elem + T::E::one();
-	// eprintln!("_count: {}, elem: {}", _count, elem);
 	v.push(f.inv(elem));
-	// eprintln!("_count: {} ", _count);
     }
 }
 
 // "good" F4 with fixed poly 0x13 using above mul table
+/// Not meant to be used directly. Use [new_gf4_0x13] constructor
+/// instead.
 pub struct F4_0x13 {
     // Note how we're treating F4 solely as a type
     // (it's never allocated or stuffed in our struct)
@@ -145,6 +159,7 @@ impl GaloisField for F4_0x13 {
     }
 }
 
+/// Optimised maths for GF(2<sup>4</sup>) with the (primitive) polynomial 0x13
 pub fn new_gf4_0x13() -> F4_0x13 {
     // reference field object
     let f = crate::new_gf4(19,3);

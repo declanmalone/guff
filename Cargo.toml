@@ -1,6 +1,6 @@
 [package]
 name = "guff"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2018"
 description = "Implements Galois Fields for various natural sizes"
 homepage = "https://github.com/declanmalone/guff"
