@@ -26,3 +26,13 @@
   GF(2**4).
 
   Clean bill of clippy health.
+
+0.1.5
+
+  Start using Criterion for benchmarking.
+
+  Benchmark guff::good fields versus reference.
+
+  Add good gf(2**8) implementation (+test/benchmark)
+
+  Warning about exp_entry not being used is OK.

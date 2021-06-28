@@ -34,7 +34,18 @@
 //! considered part of the application interface. That can change at
 //! any time.
 //!
+//! # Benchmarking
 //!
+//! I've implemented some basic benchmarks using [Criterion]. After
+//! downloading the source for this project, simply run:
+//!
+//!```ascii
+//!     cargo bench
+//!```
+//!
+//! Tests marked `ref` are run using the default, reference
+//! implementations, while those marked with `good` are for fields
+//! constructed using the functions below.
 //!
 
 use crate::{ GaloisField };
@@ -291,8 +302,12 @@ where G : GaloisField,
     {
 	let usize_a : usize = a.into();
 	let usize_b : usize = b.into();
-	let log_a : isize = self.log[usize_a].into();
-	let log_b : isize = self.log[usize_b].into();
+	let log_a : isize;
+	let log_b : isize;
+	unsafe {
+	    log_a = (*self.log.get_unchecked(usize_a)).into();
+	    log_b = (*self.log.get_unchecked(usize_b)).into();
+	}
 	// replace with unsafe after testing ...
 	self.exp[(512 + log_a + log_b) as usize]
     }
@@ -344,7 +359,7 @@ impl GaloisField for F8_0x11b {
 //    }
 }
 
-/// Optimised maths for GF(2<sup>4</sup>) with the (primitive) polynomial 0x13
+/// Optimised maths for GF(2<sup>8</sup>) with the (non-primitive) polynomial 0x11b
 pub fn new_gf8_0x11b() -> F8_0x11b {
     // reference field object
     let f = crate::new_gf8(0x11b,0x1b);
