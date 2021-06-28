@@ -90,8 +90,14 @@ where G : GaloisField, G::E : Into<usize>
 	}
 	FullMulLUT::<G> { bits : f.order() as usize, table : v }
     }
+    #[inline(always)]
     fn mul(&self, a : G::E, b : G::E) -> G::E {
-	let index : usize = (a.into() << self.bits) + b.into();
+	// let index : usize = (a.into() << self.bits) + b.into();
+	let index : usize = (a.into() << G::ORDER) + b.into();
+	// Can't do unsafe access without ensuring a,b < 16: 
+	// unsafe {
+	//    *self.table.get_unchecked(index)
+	// }
 	self.table[index]
     }
 }
@@ -110,7 +116,7 @@ fn fill_inverse<T>(f : & T,
 		   v : &mut Vec<T::E>, max : usize)
     where T : GaloisField
 {
-    eprintln!("max is {}", max);
+    // eprintln!("max is {}", max);
     let mut elem = T::E::zero();
     v.push(elem);
     for _count in 1..=max {
@@ -120,8 +126,9 @@ fn fill_inverse<T>(f : & T,
 }
 
 // "good" F4 with fixed poly 0x13 using above mul table
-/// Not meant to be used directly. Use [new_gf4_0x13] constructor
-/// instead.
+// Not meant to be used directly. Use [new_gf4_0x13] constructor
+// instead.
+#[doc(hidden)]
 pub struct F4_0x13 {
     // Note how we're treating F4 solely as a type
     // (it's never allocated or stuffed in our struct)
@@ -182,6 +189,11 @@ pub fn new_gf4_0x13() -> F4_0x13 {
 // * extended log/exp tables for `mul`,`div`,`inv`, `pow`
 // * optimise multiplying vector by constant
 // * rest supplied by default
+
+// This presents a difficulty because we don't store signed versions
+// of types in GaloisField.
+
+
 //
 // GF(2<sup>16</sup>):
 //
