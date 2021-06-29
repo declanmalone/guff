@@ -50,3 +50,12 @@
   Minor documentation fixes.
 
   More benchmarking for new inv/pow methods.
+
+0.1.7
+
+  For u16, u32 fields, need a new approach using long multiplication
+
+  Make static (8k) MULL (long multiplication) table mandatory for now
+
+  Round out/rationalise vector functionality
+

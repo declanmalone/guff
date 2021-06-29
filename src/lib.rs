@@ -92,6 +92,19 @@ use num::{PrimInt,One,Zero};
 
 pub mod good;
 
+
+// I think that if I want to keep a flat directory structure, while
+// still supporting an arbitrarily deep module tree, I would have to
+// create `tables.rs` and have a `pub mod mull` line within it.
+
+// put mull into tables
+pub mod mull;      // I thought I could make this private? No?
+pub mod tables {
+    pub use crate::mull;
+}
+
+// pub use mull as tables::mull;
+
 /// A typing trait meant to map to a primitive unsigned integer type
 /// such as u8, u16 or u32.
 pub trait ElementStore : 'static + Copy
@@ -402,6 +415,7 @@ pub trait GaloisField {
 	}
     }
 
+    // Obviously, this should take three *slices* ...
     fn vec_fma_in_place(&self,
 			dest : &mut [Self::E],
 			a    : Self::E,
@@ -979,5 +993,11 @@ mod tests {
 	    let invinv = f.inv(inv);
 	    assert_eq!(a, invinv);
 	}
+    }
+
+    #[test]
+    fn access_lmull() {
+	use crate::tables::mull;
+	assert_eq!(mull::RMULL.len(), 4096);
     }
 }

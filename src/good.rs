@@ -431,6 +431,39 @@ pub fn new_gf8_0x11b() -> F8_0x11b {
 // * l-r with 8-bit modular shift, breaking operands into four nibbles
 //   and two bytes for `mul`
 // * rest supplied by default
+
+// Just a bit of quick back-of-the-envelope calculations here:
+//
+// * 16 bits is 64k
+// * compact exp/log tables take up four times that much
+// * 8-bit x 8-bit l-r decomposition takes up 256 * 256 * 2 = 128k per
+//   full mul table
+// * 4-bit/8-bit decomp takes up 16 * 256 * 2 = 8k
+// * modular reduction by 8 bits takes up 256 * 2 bytes
+// * l-r on 4-bit/8-bit decomp doubles 8k to 16k
+//
+// I could use a single 8k table instead of doing l-r decomposition.
+// It would mean doing a bit more shifting of values, but it might be
+// more cache-friendly.
+//
+// OK... I have decided on an approach. I'll abandon trying to make
+// code generic from here on. Instead, I'll focus on 4-bit by 8-bit
+// long multiplication tables which can be reused for 16-bit and
+// 32-bit fields and beyond. Then, I'll have u16/u32-specific
+// multiplication code that uses the common table data and a
+// poly-specific modular reduction table that reduces the results of a
+// long multiplication by 8 bits at a time.
+//
+// The same approach could be used for larger polynomials, but the
+// number of sub-multiplies increases in powers of 2:
+//
+// * 16 bit: 2**2 8-bit x 8-bit sub-multiplies (x2 for 4-bit x 8-bit)
+// * 32 bit: 4**2
+// * 64 bit: 8**2
+
+
+
+
 //
 // GF(2<sup>32</sup>):
 //
