@@ -184,13 +184,13 @@ pub trait GaloisField {
     }
 
     /// Division modulo to the field polynomial (default
-    /// implementation calculated as a・b<sup>-1</sup>
+    /// implementation calculated as a・b<sup>-1</sup>)
     fn div(&self, a : Self::E, b : Self::E) -> Self::E
     {
 	self.mul(a, self.inv(b))
     }
 
-    /// Calculate polynomial a・b<sup>-1</sup> modulo the field
+    /// Calculate polynomial a<sup>-1</sup> modulo the field
     /// polynomial (using Extended Euclidean method)
     fn inv(&self, a : Self::E) -> Self::E
     {
@@ -233,6 +233,8 @@ pub trait GaloisField {
 	z
     }
     
+    /// Calculate polynomial a<sup>b</sup> modulo the field
+    /// polynomial
     fn pow(&self, a : Self::E, b : Self::EE) -> Self::E {
 	let mut result : Self::E = a;
 	let zero = Self::EE::zero();

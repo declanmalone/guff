@@ -31,10 +31,20 @@
 
   Start using Criterion for benchmarking.
 
-  Benchmark guff::good gf(16) fields versus reference.
+  Benchmark guff::good GF(16) fields versus reference.
 
-  Add good gf(2**8) implementation (+test/benchmark)
+  Add good GF(2**8) implementation (+test/benchmark)
 
   Warning about exp not being used is OK (access via exp_entry).
 
   Surprisingly, log/exp implementation is not faster than reference.
+
+0.1.6
+
+  Document last run of benchmarks.
+
+  Add inv() method for good GF(2**8) (fixing a couple of bugs)
+
+  Add pow() method for good GF(2**8) (?)
+
+  Minor documentation fixes.

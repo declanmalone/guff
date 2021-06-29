@@ -36,7 +36,7 @@
 //!
 //! # Benchmarking
 //!
-//! I've implemented some basic benchmarks using [Criterion]. After
+//! I've implemented some basic benchmarks using `Criterion`. After
 //! downloading the source for this project, simply run:
 //!
 //!```ascii
@@ -176,7 +176,7 @@ impl GaloisField for F4_0x13 {
     }
 }
 
-/// Optimised maths for GF(2<sup>4</sup>) with the (primitive) polynomial 0x13
+/// Optimised GF(2<sup>4</sup>) with the (primitive) polynomial 0x13
 pub fn new_gf4_0x13() -> F4_0x13 {
     // reference field object
     let f = crate::new_gf4(19,3);
@@ -283,10 +283,12 @@ where G : GaloisField,
 	// ...
 	// g ** 255 = 1
 	//
-	// We now have to add values starting at g again, finally
-	// finishing with another g (last two entries are optional:
-	// since max sum of logs is 255 + 255, they will never be
-	// accessed from mul)
+	// We now have to add values starting at g again. All but the
+	// last two elements of the array can be accessed by mul(a,b)
+	// since the max value of log a + log b = 255 + 255.
+	//
+	// We make the final entry be 0, though, so that inv(0) = 0
+	// works as expected: index 255 - log 0 = 255 + 256
 	assert_eq!(p, G::E::one());
 	for _ in 0..log_size-1 { // 
 	    p = f.mul(p,g);
@@ -296,7 +298,7 @@ where G : GaloisField,
 	// last element must be zero for inv(0) = 0 to work
 	exp.push( G::E::zero() );
 	assert_eq!(exp_size, exp.len());
-	
+
 	BigLogExpTables::<G> { log, exp, exp_entry }
     }
     #[inline(always)]
@@ -328,6 +330,35 @@ where G : GaloisField,
 	    *(self.exp_entry.offset(log_top - log_a))
 	}
     }
+    // let's not bother with div, though: reference code will call
+    // mul(a,inv(b)), which will pick up our inv() method above.
+
+    // Do implement pow(), though. I expect it should be much faster
+    // than the reference version.
+    fn pow(&self, a : G::E, b : G::EE) -> G::E
+    //	where G::EE : Into<isize>
+	where G::EE : Into<usize>
+    {
+	// return exp_table[(log_table[a] * b) % 255];
+	// FAST_GF2_EXP[
+	//    (512 + (FAST_GF2_LOG[a as usize] * b as i16) % 255) as usize]
+
+	// Need to ensure corner case of 0**0 = 1; this should work
+	// fine because log[anything] * 0 = 0, and exp[0] = 1
+
+	// for GF(256), we have to do index % 255
+	let log_top = (1 << (G::ORDER as usize)) - 1;
+	let usize_a : usize = a.into();
+	let usize_b : usize = b.into();
+	let isize_b : isize = usize_b as isize;
+	let mut log_a : isize;
+	unsafe {
+	    log_a = (*self.log.get_unchecked(usize_a)).into();
+	    log_a = (log_a * isize_b) % log_top;
+	    *(self.exp_entry.offset(log_a))
+	}
+    }
+
 }
 
 // I will implement two fields here:
@@ -368,14 +399,16 @@ impl GaloisField for F8_0x11b {
     fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
 	self.tables.mul(a,b)
     }
-
     fn inv(&self, a : Self::E) -> Self::E
     {
 	self.tables.inv(a)
     }
+    fn pow(&self, a : Self::E, b : Self::EE) -> Self::E {
+	self.tables.pow(a,b)
+    }
 }
 
-/// Optimised maths for GF(2<sup>8</sup>) with the (non-primitive) polynomial 0x11b
+/// Optimised GF(2<sup>8</sup>) with the (non-primitive) polynomial 0x11b
 pub fn new_gf8_0x11b() -> F8_0x11b {
     // reference field object
     let f = crate::new_gf8(0x11b,0x1b);
@@ -474,11 +507,32 @@ mod tests {
 	let mut fails = 0;
 	for i in 0..=255 {
 	    if f8.inv(i) != f8_0x11b.inv(i) {
-		eprintln!("Failed inv({})", i);
-		assert_eq!(f8.inv(i), f8_0x11b.inv(i), "(ref vs good");
+		// fail early:
+		// eprintln!("Failed inv({})", i);
+		// assert_eq!(f8.inv(i), f8_0x11b.inv(i), "(ref vs good");
 		fails += 1;
 	    }
 	}
 	assert_eq!(fails, 0);
     }
+
+    #[test]
+    fn test_f8_0x11b_pow_conformance() {
+	let f8       = new_gf8(0x11b,0x1b);
+	let f8_0x11b = new_gf8_0x11b();
+	let mut fails = 0;
+	// corner case 0**0 = 1
+	assert_eq!(f8_0x11b.pow(0,0), 1);
+	for i in 0..=255 {
+	    for j in 0..=1024 {	// exercise running off table end
+		if f8.pow(i,j) != f8_0x11b.pow(i,j) {
+		    eprintln!("Failing for power {} ** {}", i, j);
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+
 }
