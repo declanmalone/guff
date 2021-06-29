@@ -226,7 +226,7 @@ pub fn ref_gf8_pow(c: &mut Criterion) {
 		       |b, f| {
 			   b.iter(||
 				  for i in 0..=128 {
-				      for j in 0..=511 {
+				      for j in 0..=256 {
 					  f.pow(i,j);
 				      }
 				  }
@@ -242,7 +242,7 @@ pub fn good_gf8_pow(c: &mut Criterion) {
 		       |b, f| {
 			   b.iter(||
 				  for i in 0..=128 {
-				      for j in 0..=511 {
+				      for j in 0..=256 {
 					  f.pow(i,j);
 				      }
 				  }
