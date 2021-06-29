@@ -261,8 +261,8 @@ pub trait GaloisField {
 	// involving type conversion from E -> usize -> E
 
 
-	while b >=  Self::POLY_BIT {
-	    b = b - (Self::POLY_BIT - Self::EE::one())
+	while b >=  (Self::FIELD_MASK).into() {
+	    b = b - (Self::FIELD_MASK).into()
 	}
 
 	// identity below only works on field
