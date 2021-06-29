@@ -18,6 +18,9 @@ criterion = "0.3"
 name = "single_mul"
 harness = false
 
+[profile.release]
+debug = true
+
 
 [dependencies]
 "num" = "0.4.0"
