@@ -245,7 +245,7 @@ where G : GaloisField,
 	// first bunch of entries
 	let mut i : usize = 0;
 	// exp 0 = 1
-	exp.push(G::E::zero());
+	exp.push(G::E::one());
 	// log 0 = -256
 //	log[i] = (- (log_size as isize)).into();
 	log[i] = G::SEE::zero() - see_log_size;
@@ -288,11 +288,13 @@ where G : GaloisField,
 	// since max sum of logs is 255 + 255, they will never be
 	// accessed from mul)
 	assert_eq!(p, G::E::one());
-	for _ in 0..log_size {
+	for _ in 0..log_size-1 { // 
 	    p = f.mul(p,g);
 	    exp.push(p);
 	}
-	assert_eq!(p,g);
+	assert_eq!(p, G::E::one());
+	// last element must be zero for inv(0) = 0 to work
+	exp.push( G::E::zero() );
 	assert_eq!(exp_size, exp.len());
 	
 	BigLogExpTables::<G> { log, exp, exp_entry }
@@ -316,6 +318,16 @@ where G : GaloisField,
 	//	self.exp[(512 + log_a + log_b) as usize]
     }
     // can also implement inv, div, pow with these tables!
+    fn inv(&self, a : G::E) -> G::E {
+	// for GF(256), we would return exp[255 - log a]
+	let log_top = (1 << (G::ORDER as usize)) - 1;
+	let usize_a : usize = a.into();
+	let log_a : isize;
+	unsafe {
+	    log_a = (*self.log.get_unchecked(usize_a)).into();
+	    *(self.exp_entry.offset(log_top - log_a))
+	}
+    }
 }
 
 // I will implement two fields here:
@@ -352,16 +364,15 @@ impl GaloisField for F8_0x11b {
     fn full_poly(&self) -> u16  { 0x11b }
 
     // pass mul call on to table
-//    #[inline(always)]
+    // #[inline(always)] // doesn't play nicely with benchmark code
     fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
 	self.tables.mul(a,b)
     }
 
-//    fn inv(&self, a : Self::E) -> Self::E
-//    {
-//	// can use 'a as usize' since its type is known to be u8
-//	self.inv_lut[a as usize]
-//    }
+    fn inv(&self, a : Self::E) -> Self::E
+    {
+	self.tables.inv(a)
+    }
 }
 
 /// Optimised maths for GF(2<sup>8</sup>) with the (non-primitive) polynomial 0x11b
@@ -369,9 +380,14 @@ pub fn new_gf8_0x11b() -> F8_0x11b {
     // reference field object
     let f = crate::new_gf8(0x11b,0x1b);
     
-    F8_0x11b {
+    let this = F8_0x11b {	// field has generator 3
 	tables : BigLogExpTables::<crate::F8>::new(&f, 3),
-    }
+    };
+
+    // Ensure that log[0] == -256
+    assert_eq!(this.tables.log[0], -256);
+
+    this
 }
 
 
@@ -446,6 +462,21 @@ mod tests {
 		if f8.mul(i,j) != f8_0x11b.mul(i,j) {
 		    fails += 1;
 		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    #[test]
+    fn test_f8_0x11b_inv_conformance() {
+	let f8       = new_gf8(0x11b,0x1b);
+	let f8_0x11b = new_gf8_0x11b();
+	let mut fails = 0;
+	for i in 0..=255 {
+	    if f8.inv(i) != f8_0x11b.inv(i) {
+		eprintln!("Failed inv({})", i);
+		assert_eq!(f8.inv(i), f8_0x11b.inv(i), "(ref vs good");
+		fails += 1;
 	    }
 	}
 	assert_eq!(fails, 0);
