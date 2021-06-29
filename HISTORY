@@ -45,6 +45,8 @@
 
   Add inv() method for good GF(2**8) (fixing a couple of bugs)
 
-  Add pow() method for good GF(2**8) (?)
+  Add pow() method for good GF(2**8) (finding bug in reference pow)
 
   Minor documentation fixes.
+
+  More benchmarking for new inv/pow methods.

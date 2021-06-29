@@ -527,6 +527,10 @@ mod tests {
 	    for j in 0..=1024 {	// exercise running off table end
 		if f8.pow(i,j) != f8_0x11b.pow(i,j) {
 		    eprintln!("Failing for power {} ** {}", i, j);
+		    eprintln!("Reference: {}, Got: {}",
+			      f8.pow(i,j),
+			      f8_0x11b.pow(i,j)
+			      );
 		    fails += 1;
 		}
 	    }

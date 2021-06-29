@@ -20,6 +20,7 @@
 //! * use that object to do maths in that field: eg, `result =
 //! f.mul(a,b)`
 //! 
+//! Example of using the default generic code:
 //! 
 //! ```rust
 //! use guff::{GaloisField, F4, new_gf4};
@@ -37,6 +38,19 @@
 //! assert_eq!(f2.pow(5,3), f2.mul(5,f2.mul(5,5)) );
 //! assert_eq!(f.pow(5,3), f2.pow(5,3));
 //! 
+//! ```
+//! 
+//! The `guff::good` module provides a set of reasonably good
+//! implementations that in most cases *should* be better than the
+//! generic implementation. Example of use:
+//! 
+//! ```rust
+//! use guff::GaloisField;
+//! use guff::good::{F4_0x13, new_gf4_0x13};
+//! 
+//! let f = guff::good::new_gf4_0x13();
+//!
+//! assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
 //! 
 //! ```
 //!
@@ -235,23 +249,25 @@ pub trait GaloisField {
     
     /// Calculate polynomial a<sup>b</sup> modulo the field
     /// polynomial
-    fn pow(&self, a : Self::E, b : Self::EE) -> Self::E {
+    fn pow(&self, a : Self::E, mut b : Self::EE) -> Self::E
+    where Self::E : Into<Self::EE> {
 	let mut result : Self::E = a;
 	let zero = Self::EE::zero();
 	let one  = Self::E::one();
 	let mut mask : Self::EE;
 
-	// slight optimisation possible for large powers:
-	// while b > Self::POLY_BIT - Self::EE::one() {
-	//    b = b - (Self::POLY_BIT - Self::EE::one())
-	// }
-	//
-	// Not enabled because I want to be sure routine does what it
-	// should for large b values.
+	// Enabling b % (field_size - 1). I'm doing this through
+	// repeated subtraction rather than engage in gymnastics
+	// involving type conversion from E -> usize -> E
+
+
+	while b >=  Self::POLY_BIT {
+	    b = b - (Self::POLY_BIT - Self::EE::one())
+	}
 
 	// identity below only works on field
 	if b == zero
-	// || b == self.field_mask()
+	// || b == self.field_mask().into()
 	{ return one }
 	// shift mask right if there are leading zeros
 	// fixup for GF(16) to ignore unused top nibble
@@ -692,7 +708,10 @@ mod tests {
     #[test]
     fn mod_power_15() { // was failing
 	let obj = new_gf4(19, 3);
-	for a in 0..15 {
+	// would fail for a=0 because of corner case:
+	// 0**0 = 0**15 = 1
+	// (but 0**5 = 0!)
+	for a in 1..=15 {
 	    let direct = obj.pow(a, 15);
 
 	    let indirect_5 = obj.pow(a, 5);
