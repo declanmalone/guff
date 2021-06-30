@@ -489,8 +489,9 @@ where G : GaloisField,
 {
     fn new(f : &G) -> BytewiseReduceTable<G>
     where
-	// G::EE  : Into<usize>,
-	// G::E   : From<G::EE>,
+    // G::EE  : Into<usize>,
+    //	G::E   : From<G::EE>, // offending line
+	G::E   : std::convert::TryFrom<G::EE>,
 	G::E   : Into<usize>
     {
 
@@ -567,8 +568,8 @@ impl GaloisField for F16_0x1002b {
     const HIGH_BIT   : u16  = 0x8000;
 
     // the two required methods (everything else is default)
-    fn poly(&self)      -> u16   { 0x1002b }
-    fn full_poly(&self) -> u32  { 0x2b }
+    fn poly(&self)      -> u16  { 0x2b }
+    fn full_poly(&self) -> u32  { 0x1002b }
 
     // pass mul call on to table
     // #[inline(always)] // doesn't play nicely with benchmark code

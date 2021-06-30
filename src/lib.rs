@@ -89,6 +89,8 @@
 
 //use num_traits;
 use num::{PrimInt,One,Zero};
+    // I hate having to use this:
+use std::convert::{TryFrom,TryInto};
 
 pub mod good;
 
@@ -111,6 +113,7 @@ pub mod tables;
 pub trait ElementStore : 'static + Copy
     + num_traits::int::PrimInt
     + std::fmt::Display
+    + std::fmt::Debug
     + num::FromPrimitive + num::ToPrimitive
     // + num::FromPrimitive + num::ToPrimitive
     // + num::Integer
@@ -121,13 +124,15 @@ impl<T> ElementStore for T
 where T : 'static + Copy
     + num_traits::int::PrimInt
     + std::fmt::Display
+    + std::fmt::Debug
     + num::FromPrimitive + num::ToPrimitive
 {}
 
 /// Collection of methods needed to implement maths in
 /// GF(2<sup>x</sup>).  Provides (slow) default implementations that
 /// can be overriden by optimised versions.
-pub trait GaloisField {
+pub trait GaloisField
+where Self::EE : From<Self::E> {
     /// Natural storage class (u8, u16, u32, etc.) for storing
     /// elements of the field.
     type E  : ElementStore;
@@ -345,14 +350,16 @@ pub trait GaloisField {
     // Here we have the reverse problem of converting an EE to E
     // Changing this to an associated function.
     fn mod_reduce(mut a : Self::EE, mut poly : Self::EE) -> Self::E
-//    where Self::E: From<Self::EE>
+    where Self::E: std::convert::TryFrom<Self::EE>
     {
 	let eezero   = Self::EE::zero();
 	poly = poly << (Self::ORDER - 1).into();
 	let mut mask = Self::POLY_BIT    << (Self::ORDER - 1).into();
         loop {
 	    if a & mask != eezero  { a = a ^ poly    }
-	    if a < Self::POLY_BIT  { return a.into() }
+	    if a < Self::POLY_BIT  {
+		return a.try_into().unwrap_or(Self::E::zero())
+	    }
 	    mask = mask >> 1;
 	    poly = poly >> 1;
 	}
@@ -446,15 +453,19 @@ pub trait GaloisField {
 
 
 /// A type implementing (default) maths in GF(2<sup>4</sup>)
+#[derive(Debug)]
 pub struct F4  { pub full : u8,  pub compact : u8 }
 
 /// A type implementing (default) maths in GF(2<sup>8</sup>)
+#[derive(Debug)]
 pub struct F8  { pub full : u16, pub compact : u8 }
 	
 /// A type implementing (default) maths in GF(2<sup>16</sup>)
+#[derive(Debug)]
 pub struct F16 { pub full : u32, pub compact : u16 }
 
 /// A type implementing (default) maths in GF(2<sup>32</sup>)
+#[derive(Debug)]
 pub struct F32 { pub full : u64, pub compact : u32 }
 
 impl GaloisField for F4 {
