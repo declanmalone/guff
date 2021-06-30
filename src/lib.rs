@@ -998,6 +998,6 @@ mod tests {
     #[test]
     fn access_lmull() {
 	use crate::tables::mull;
-	assert_eq!(mull::RMULL.len(), 4096);
+	assert_eq!(mull::MULL.len(), 4096);
     }
 }

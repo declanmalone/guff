@@ -1,11 +1,100 @@
-// 12-bit multiply of (low) nibble by 8-bit value
+//! # Table lookup to assist in long polynomial multiplication
+//!
+//! The functions here help when multiplying polynomials that are
+//! larger than `u8` in size. They are backed by an 8k static lookup
+//! table containing all possible polynomial multiplications between a
+//! 4-bit polynomial fragment and an 8-bit polynomial fragment.
+//!
+//! Example: multiplying a 32-bit polynomial by an 8-bit one
+//!
+//! ``` rust
+//!
+//! use guff::tables::mull::{rmull};
+//!
+//! let a : u32 = 0x1234_5678;
+//! let b : u8  = 0x9a;
+//!
+//! // break a into separate bytes, b into nibbles
+//! let a3 : u8 = ((a >> 24) as u8);
+//! let a2 : u8 = ((a >> 16) as u8);
+//! let a1 : u8 = ((a >>  8) as u8);
+//! let a0 : u8 = ((a      ) as u8);
+//!
+//! let b1 = b >> 4;
+//! let b0 = b & 0x0f;
+//!
+//! let mut result : u64 = 0;
+//!
+//! // piece-wise multiplication using schoolbook method
+//! result ^= (rmull(a0,b0) as u64) << 0  ;
+//! result ^= (rmull(a1,b0) as u64) << 8  ;
+//! result ^= (rmull(a2,b0) as u64) << 16 ;
+//! result ^= (rmull(a3,b0) as u64) << 24 ;
+//! result ^= (rmull(a0,b1) as u64) << 4  ;
+//! result ^= (rmull(a1,b1) as u64) << 12 ;
+//! result ^= (rmull(a2,b1) as u64) << 20 ;
+//! result ^= (rmull(a3,b1) as u64) << 28 ;
+//!
+//! // compare result with reference mull in GF(2<sup>32</sup>)
+//! use guff::{GaloisField,F32,new_gf32};
+//!
+//! assert_eq!(result,
+//!            new_gf32(0x1002b,0x2b).mull(a.into(), b.into()));
+//!
+//!
+//! ```
+
+/// Straight multiply assuming small value is in low (rightmost) nibble position
+#[inline(always)]
+pub fn rmull(big : u8, small : u8) -> u16 {
+    let index = ( ((small as u16) << 8) | (big as u16) ) as usize;
+    let out = MULL[index];
+    eprintln!("Big {}, Small {}", big, small);
+    eprintln!("Index {}", index);
+    eprintln!("Out: {}", out);
+    out
+}
+
+/// Straight multiply assuming small value is in high (leftmost) nibble position
+#[inline(always)]
+pub fn lmull(big : u8, small : u8) -> u16 {
+    let index = ( ((small as u16) << 8) | (big as u16) ) as usize;
+    let out = MULL[index];
+    out << 4
+}
+
+/// Straight multiply with small value containing packed left, right nibbles
+
+// Might be slightly slower than calling lmull, rmull directly, due to
+// repeated calculation of shift/mask at the top, but the compiler
+// should be able to optimise these out.
+#[inline(always)]
+pub fn lrmull(big : u8, small : u8) -> u16 {
+
+    let l : u16 = (small >> 4   ).into();
+    let r : u16 = (small & 0x0f ).into();
+
+    // Exact same index calculations for l, r
+    let l_index = ( (l << 8) | (big as u16) ) as usize;
+    let l_out = MULL[l_index];
+
+    let r_index = ( (r << 8) | (big as u16) ) as usize;
+    let r_out = MULL[r_index];
+
+    // Difference is that we left-shift the l result
+    (l_out << 4) ^ r_out
+}
+
+// 12-bit multiply of nibble by 8-bit value
 //
-// RMULL[(nibble << 8) | (byte)] => nibble * byte
+// RMULL = MULL[(byte << 4) | (nibble)] => byte * nibble
 //
 // I will reuse this table to calculate LMULL, which is the RMULL
 // result shifted left 4 bits.
 
-pub const RMULL : [u16; 4096] = [
+/// Lookup table for multiplying 8-bit poly fragment by 4-bit poly
+/// fragment (straight multiplication; no modulus)
+pub const MULL : [u16; 4096] = [
   0, 0, 0, 0, 0, 0, 0, 0, 
   0, 0, 0, 0, 0, 0, 0, 0, 
   0, 0, 0, 0, 0, 0, 0, 0, 
@@ -519,3 +608,46 @@ pub const RMULL : [u16; 4096] = [
   1360, 1375, 1358, 1345, 1388, 1379, 1394, 1405, 
   1320, 1319, 1334, 1337, 1300, 1307, 1290, 1285, 
 ];
+
+// 
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn mull_as_shift() {
+	// multiplying by a power of x is equivalent to left-shift
+	for byte in 0u8..=255 {
+	    for bit in 0..4 {
+		assert_eq!(rmull(byte, 1 << bit),
+			   (byte as u16) << bit);
+	    }
+	}
+    }
+
+    #[test]
+    fn lmull_vs_rmull() {
+	// lmull values should simply be rmull values << 4
+	for byte in 0u8..=255 {
+	    for nibble in 0u8..16 {
+		assert_eq!(lmull(byte, nibble),
+			   rmull(byte, nibble) << 4);
+	    }
+	}
+    }
+
+    #[test]
+    fn lrmull_vs_lmull_rmull() {
+	for byte in 0u8..=255 {
+	    for l in 0u8..16 {
+		for r in 0u8..16 {
+		    let combined : u8 = (l << 4) | r;
+		    assert_eq!(lrmull(byte, combined),
+			       lmull(byte, l) ^ rmull(byte, r));
+		}
+	    }
+	}	
+    }
+}
