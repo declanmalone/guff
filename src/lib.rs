@@ -522,7 +522,7 @@ impl GaloisField for F16 {
     type SEE = i32;
 
     // we have to redeclare types for constants
-    const ORDER      : u16 = 8;
+    const ORDER      : u16 = 16;
     const POLY_BIT   : u32 = 0x10000;
     const FIELD_MASK : u16 = 0xffff;
     const HIGH_BIT   : u16 = 0x8000;

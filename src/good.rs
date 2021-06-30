@@ -523,7 +523,15 @@ where G : GaloisField,
 
     fn mod_shift_left_8(&self, a : G::E) -> G::E {
 	let usize_a : usize = a.into();
-	let mask = self.reduce[usize_a >> 8];
+	// top 8 bits of:
+	// u8:  u8  >> 0   = 8  - 8
+	// u16: u16 >> 8   = 16 - 8
+	// u32: u32 >> 24  = 32 - 8
+	// u64: u64 >> 56  = 64 - 8
+	let shr = (G::ORDER as usize) - 8;
+	// eprintln!("mod_shift_left_8: ORDER is {}, shr is {}",
+	//  G::ORDER  as usize, shr);
+	let mask = self.reduce[usize_a >> shr];
 	(a << 8) ^ mask
     }
 
@@ -582,6 +590,8 @@ impl GaloisField for F16_0x1002b {
 
     // use mull/reduce tables for mul
     fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
+	// panic!("gf16 mul: ORDER is {}", self.order());
+	// panic!("gf16 mul: ORDER is {}", Self::ORDER);
 	// four small nibbles
 	let a3 : u8 = ((a >> 12) as u8) & 0x0f;
 	let a2 : u8 = ((a >>  8) as u8) & 0x0f;
@@ -596,7 +606,8 @@ impl GaloisField for F16_0x1002b {
 
 	// work from high fragments down
 	c = lmull(b1, a3) ^ rmull(b1, a2);
-	
+
+	// somehow this ends up thinking that ORDER is 8...
 	c = self.reduce.mod_shift_left_8(c);
 	
 	c = c ^ lmull(b0, a3) ^ rmull(b0, a2);
@@ -604,6 +615,7 @@ impl GaloisField for F16_0x1002b {
 
 	c = self.reduce.mod_shift_left_8(c);
 
+	// this can't overflow a u16
 	c = c ^ lmull(b0, a1) ^ rmull(b0, a0);
 	
 	c
@@ -768,7 +780,7 @@ mod tests {
 
     // OK... inv works, but mul doesn't. Time to test components.
 
-    // Can I use F8 to test this? 
+    // Can I use F8 to test this? Yes.
     #[test]
     fn test_bytewise_reduce_table() {
 	let f = new_gf8(0x11b,0x1b);
@@ -784,5 +796,21 @@ mod tests {
 	}
 	assert_eq!(fails, 0);
     }
+    #[test]
+    fn test_mod_shift_left_8() {
+	let f = new_gf8(0x11b,0x1b);
+
+	// generate mod reduce table
+	let reduce = BytewiseReduceTable::<F8>::new(&f);
+
+	let mut fails = 0;
+	for i in 0u16..=65535 {
+	    let ref_res      : u8 = F8::mod_reduce(i,0x11b);
+	    let bytewise_res : u8 = reduce.mod_reduce_bytewise(i);
+	    if ref_res != bytewise_res { fails += 1} 
+	}
+	assert_eq!(fails, 0);
+    }
+    
     
 }
