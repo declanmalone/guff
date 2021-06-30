@@ -98,10 +98,12 @@ pub mod good;
 // create `tables.rs` and have a `pub mod mull` line within it.
 
 // put mull into tables
-pub mod mull;      // I thought I could make this private? No?
-pub mod tables {
-    pub use crate::mull;
-}
+// pub mod mull;      // I thought I could make this private? No?
+// pub mod tables {
+//     pub use crate::mull;
+// }
+
+pub mod tables;
 
 // pub use mull as tables::mull;
 
