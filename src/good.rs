@@ -49,7 +49,11 @@
 //!
 
 use crate::{ GaloisField };
+use crate::tables::mull::{lmull,rmull,lrmull};
+
 use num::{One,Zero};
+use std::convert::TryInto;
+
 //use num_traits;
 //use num_traits::ToPrimitive;
 
@@ -500,10 +504,13 @@ where G : GaloisField,
 	// will count 0, 256, 512, 768, 1024, ..., 65280
 	let mut i = G::EE::zero();
 	let delta = G::EE::one() << 8;
-	for _ in 0..=255 {
+	for _ in 0..=254 {
 	    reduce.push(G::mod_reduce(i, f.full_poly()));
-	    i = i + delta;
+	    i = i + delta;	// can overflow if 0..=255
 	}
+	reduce.push(G::mod_reduce(i, f.full_poly()));
+
+	assert_eq!(reduce.len(), 256);
 	
 	BytewiseReduceTable::<G> { reduce }
     }
@@ -523,15 +530,17 @@ where G : GaloisField,
     // Take a G::EE, reduce it to a G::E one byte at a time
     fn mod_reduce_bytewise(&self, mut a : G::EE) -> G::E
     where G::E  : Into<G::EE>,
-	  G::EE : Into<G::E>,
+	  G::EE : std::convert::TryInto<G::E>,
 	  G::E  : Into<usize>,
 	  G::EE : Into<usize>    {
 	// we need two 8-bit steps to reduce from u32 to u16:
 	let mut steps = G::ORDER as usize >> 3;
 	// right-shift needed to move high byte into low byte
-	let shr = G::ORDER as usize - 8;
+	let shr = (G::ORDER as usize) * 2 - 8;
 	// half shift for moving mask and final return value
 	let half_shift = G::ORDER as usize;
+	// eprintln!("Steps: {}", steps);
+	// eprintln!("shr: {}", shr);
 	while steps > 0 {
 	    let top_byte = a >> shr;
 	    let usize_byte : usize = top_byte.into();
@@ -545,7 +554,7 @@ where G : GaloisField,
 	}
 	// result is in upper half of EE, so bring it down
 	a = a >> half_shift;
-	a.into()
+	a.try_into().unwrap_or_else(|_| panic!())
     }
 }
 
@@ -571,11 +580,34 @@ impl GaloisField for F16_0x1002b {
     fn poly(&self)      -> u16  { 0x2b }
     fn full_poly(&self) -> u32  { 0x1002b }
 
-    // pass mul call on to table
-    // #[inline(always)] // doesn't play nicely with benchmark code
-//  fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
-//    self.tables.mul(a,b)
-//  }
+    // use mull/reduce tables for mul
+    fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
+	// four small nibbles
+	let a3 : u8 = ((a >> 12) as u8) & 0x0f;
+	let a2 : u8 = ((a >>  8) as u8) & 0x0f;
+	let a1 : u8 = ((a >>  4) as u8) & 0x0f;
+	let a0 : u8 = ((a      ) as u8) & 0x0f;
+
+	// two big bytes
+	let b1 : u8 = (b >> 8)   as u8;
+	let b0 : u8 = (b & 0xff) as u8;
+
+	let mut c : u16;
+
+	// work from high fragments down
+	c = lmull(b1, a3) ^ rmull(b1, a2);
+	
+	c = self.reduce.mod_shift_left_8(c);
+	
+	c = c ^ lmull(b0, a3) ^ rmull(b0, a2);
+	c = c ^ lmull(b1, a1) ^ rmull(b1, a0);
+
+	c = self.reduce.mod_shift_left_8(c);
+
+	c = c ^ lmull(b0, a1) ^ rmull(b0, a0);
+	
+	c
+    }
     fn inv(&self, a : Self::E) -> Self::E
     {
 	self.inv[a as usize]
@@ -583,7 +615,7 @@ impl GaloisField for F16_0x1002b {
 }
 
 /// Optimised GF(2<sup>16</sup>) with the (primitive?) polynomial 0x1002b
-pub fn new_gf4_0x1002b() -> F16_0x1002b {
+pub fn new_gf16_0x1002b() -> F16_0x1002b {
     // reference field object
     let f = crate::new_gf16(0x1002b,0x2b);
 
@@ -613,7 +645,8 @@ pub fn new_gf4_0x1002b() -> F16_0x1002b {
 mod tests {
 
     use super::*;
-    use crate::{new_gf4, new_gf8};
+    use crate::{new_gf4, new_gf8, new_gf16};
+    use crate::{F4, F8, F16};
 
     #[test]
     fn test_f4_0x13_mul_conformance() {
@@ -701,6 +734,55 @@ mod tests {
     // same vein for now, but I might add more focused tests when I
     // migrate the table code out of here into guff::tables.
 
-    
+    #[test]
+    fn test_f16_0x1002b_mul_conformance() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	// just a sampling... test is too long otherwise
+	for i in 0..=1023 {
+	    for j in 0..=1023 {
+		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
 
+    #[test]
+    fn test_f16_0x1002b_inv_conformance() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	for i in 0..=65535 {
+	    if f16.inv(i) != f16_0x1002b.inv(i) {
+		// fail early:
+		// eprintln!("Failed inv({})", i);
+		// assert_eq!(f8.inv(i), f8_0x11b.inv(i), "(ref vs good");
+		fails += 1;
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    // OK... inv works, but mul doesn't. Time to test components.
+
+    // Can I use F8 to test this? 
+    #[test]
+    fn test_bytewise_reduce_table() {
+	let f = new_gf8(0x11b,0x1b);
+
+	// generate mod reduce table
+	let reduce = BytewiseReduceTable::<F8>::new(&f);
+
+	let mut fails = 0;
+	for i in 0u16..=65535 {
+	    let ref_res      : u8 = F8::mod_reduce(i,0x11b);
+	    let bytewise_res : u8 = reduce.mod_reduce_bytewise(i);
+	    if ref_res != bytewise_res { fails += 1} 
+	}
+	assert_eq!(fails, 0);
+    }
+    
 }

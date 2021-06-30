@@ -1,6 +1,6 @@
 
 
-use guff::{GaloisField, new_gf4, new_gf8};
+use guff::{GaloisField, new_gf4, F4, new_gf8, F8};
 use guff::good::{new_gf4_0x13, new_gf8_0x11b};
 
 
@@ -46,13 +46,13 @@ pub fn ref_gf4_mul(c: &mut Criterion) {
 pub fn ref_gf4_mull(c: &mut Criterion) {
     let ref_f = new_gf4(19,3);
     c.bench_with_input(
-		       BenchmarkId::new("gf4 mul", "mull"),
+		       BenchmarkId::new("gf4 mull", "ref"),
 		       &ref_f,
-		       |b, f| {
+		       |b, _f| {
 			   b.iter(||
 				  for i in 0..=15 {
 				      for j in 0..=15 {
-					  f.mull(black_box(i),j);
+					  F4::mull(black_box(i),j);
 				      }
 				  }
 			   );
@@ -62,13 +62,14 @@ pub fn ref_gf4_mull(c: &mut Criterion) {
 pub fn ref_gf4_mull_reduce(c: &mut Criterion) {
     let ref_f = new_gf4(19,3);
     c.bench_with_input(
-		       BenchmarkId::new("gf4 mul", "mull-reduce"),
+		       BenchmarkId::new("gf4 mull-reduce", "ref"),
 		       &ref_f,
-		       |b, f| {
+		       |b, _f| {
 			   b.iter(||
 				  for i in 0..=15 {
 				      for j in 0..=15 {
-					  f.mod_reduce(f.mull(i,j));
+					  F4::mod_reduce(
+					      F4::mull(black_box(i),j),19);
 				      }
 				  }
 			   );
