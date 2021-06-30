@@ -532,7 +532,9 @@ where G : GaloisField,
 	// eprintln!("mod_shift_left_8: ORDER is {}, shr is {}",
 	//  G::ORDER  as usize, shr);
 	let mask = self.reduce[usize_a >> shr];
-	(a << 8) ^ mask
+	// damn... Rust won't let me do this if a would overflow
+	// (a << 8) ^ mask
+	if G::ORDER <= 8 { mask } else { (a << 8) ^ mask }
     }
 
     // Take a G::EE, reduce it to a G::E one byte at a time
@@ -607,7 +609,6 @@ impl GaloisField for F16_0x1002b {
 	// work from high fragments down
 	c = lmull(b1, a3) ^ rmull(b1, a2);
 
-	// somehow this ends up thinking that ORDER is 8...
 	c = self.reduce.mod_shift_left_8(c);
 	
 	c = c ^ lmull(b0, a3) ^ rmull(b0, a2);
@@ -752,9 +753,13 @@ mod tests {
 	let f16_0x1002b = new_gf16_0x1002b();
 	let mut fails = 0;
 	// just a sampling... test is too long otherwise
-	for i in 0..=1023 {
-	    for j in 0..=1023 {
+	for i in 0u16..=1023 {
+	    for j in 0u16..=1023 {
 		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    // fail early:
+		    eprintln!("Failed mul({} * {})", i, j);
+		    assert_eq!(f16.mul(i,j), f16_0x1002b.mul(i,j),
+			       "(ref vs good");
 		    fails += 1;
 		}
 	    }
@@ -803,13 +808,17 @@ mod tests {
 	// generate mod reduce table
 	let reduce = BytewiseReduceTable::<F8>::new(&f);
 
-	let mut fails = 0;
-	for i in 0u16..=65535 {
-	    let ref_res      : u8 = F8::mod_reduce(i,0x11b);
-	    let bytewise_res : u8 = reduce.mod_reduce_bytewise(i);
-	    if ref_res != bytewise_res { fails += 1} 
-	}
-	assert_eq!(fails, 0);
+	// to mod reduce a long straight mull like:
+	//    BE EF
+	//
+	// we should be able to mod_shift_left_8(BE) and
+	// add it to EF.
+
+	let ref_res      : u8 = F8::mod_reduce(0xbeef,0x11b);
+	let part : u8 = reduce.mod_shift_left_8(0xbe);
+	let shift_res = part ^ 0xef;
+
+	assert_eq!(ref_res, shift_res);
     }
     
     
