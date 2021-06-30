@@ -35,11 +35,11 @@
 //! result ^= (rmull(a2,b1) as u64) << 20 ;
 //! result ^= (rmull(a3,b1) as u64) << 28 ;
 //!
-//! // compare result with reference mull in GF(2<sup>32</sup>)
-//! use guff::{GaloisField,F32,new_gf32};
+//! // compare result with GF(2**32)  reference mull
+//! use guff::{GaloisField,F32};
 //!
 //! assert_eq!(result,
-//!            new_gf32(0x1002b,0x2b).mull(a.into(), b.into()));
+//!            F32::mull(a.into(), b.into()));
 //!
 //!
 //! ```

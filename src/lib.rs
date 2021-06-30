@@ -317,8 +317,8 @@ pub trait GaloisField {
     /// Long Polynomial multiplication, *not* modulo the field polynomial
 
     // Note the extra type constraint for conversion E -> EE.
-    // Changing this to a "class method", or whatever they're called
-    // in Rust, since it doesn't depend on a poly.
+    // Changing this to an associated function since it doesn't depend
+    // on a poly.
     fn mull(a : Self::E, b : Self::E) -> Self::EE
     where Self::EE: From<Self::E>
     {
@@ -341,11 +341,12 @@ pub trait GaloisField {
     /// Bitwise modular reduction from EE to E
 
     // Here we have the reverse problem of converting an EE to E
-    fn mod_reduce(&self, mut a : Self::EE) -> Self::E
+    // Changing this to an associated function.
+    fn mod_reduce(mut a : Self::EE, mut poly : Self::EE) -> Self::E
     where Self::E: From<Self::EE>
     {
 	let eezero   = Self::EE::zero();
-	let mut poly = self.full_poly()  << (Self::ORDER - 1).into();
+	poly = poly << (Self::ORDER - 1).into();
 	let mut mask = Self::POLY_BIT    << (Self::ORDER - 1).into();
         loop {
 	    if a & mask != eezero  { a = a ^ poly    }
@@ -977,11 +978,13 @@ mod tests {
     // mul method
     #[test]
     fn long_mul_mod_reduce_conformance() {
+	// mull() and mod_reduce() are now associated functions
 	let f = new_gf4(19, 3);
 	for a in 0..=15 {
 	    for b in 0..=15 {
-		let longmul = f.mull(a,b);
-		assert_eq!(f.mul(a,b), f.mod_reduce(longmul));
+		let longmul = F4::mull(a,b);
+		// new: we have to pass a full poly to mod_reduce()
+		assert_eq!(f.mul(a,b), F4::mod_reduce(longmul, 19));
 	    }
 	}
     }
