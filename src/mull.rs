@@ -1,4 +1,4 @@
-//! # Table lookup to assist in long polynomial multiplication
+//! # Long, non-modular polynomial multiplication lookup table
 //!
 //! The functions here help when multiplying polynomials that are
 //! larger than `u8` in size. They are backed by an 8k static lookup
@@ -35,7 +35,7 @@
 //! result ^= (rmull(a2,b1) as u64) << 20 ;
 //! result ^= (rmull(a3,b1) as u64) << 28 ;
 //!
-//! // compare result with GF(2**32)  reference mull
+//! // compare result with GF(2**32) reference mull
 //! use guff::{GaloisField,F32};
 //!
 //! assert_eq!(result,

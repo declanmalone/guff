@@ -25,17 +25,17 @@
 //! ```rust
 //! use guff::{GaloisField, F4, new_gf4};
 //! 
-//! // Create a GF(2<sup>4</sup>) field from a struct
+//! // Create a GF(2**4) field from a struct
 //! // * `19` is the field's irreducible polynomial
 //! // * `3` is the same value with bit 0x10 removed
-//! let f = guff::F4 { full : 19, compact : 3 };
+//! let f = F4 { full : 19, compact : 3 };
 //! 
 //! assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
 //! 
 //! // The same, but using a constructor as syntactic sugar
-//! let f2 = guff::new_gf4(19, 3);
+//! let f2 = new_gf4(19, 3);
 //!
-//! assert_eq!(f2.pow(5,3), f2.mul(5,f2.mul(5,5)) );
+//! assert_eq!(f2.pow(5,3), f2.mul(5, f2.mul(5,5)) );
 //! assert_eq!(f.pow(5,3), f2.pow(5,3));
 //! 
 //! ```
@@ -48,9 +48,9 @@
 //! use guff::GaloisField;
 //! use guff::good::{F4_0x13, new_gf4_0x13};
 //! 
-//! let f = guff::good::new_gf4_0x13();
+//! let f = new_gf4_0x13();
 //!
-//! assert_eq!(f.pow(5,3), f.mul(5,f.mul(5,5)) );
+//! assert_eq!(f.pow(5,3), f.mul(5, f.mul(5,5)) );
 //! 
 //! ```
 //!
@@ -92,20 +92,19 @@ use num::{PrimInt,One,Zero};
 
 pub mod good;
 
-
 // I think that if I want to keep a flat directory structure, while
 // still supporting an arbitrarily deep module tree, I would have to
 // create `tables.rs` and have a `pub mod mull` line within it.
 
-// put mull into tables
-// pub mod mull;      // I thought I could make this private? No?
-// pub mod tables {
-//     pub use crate::mull;
-// }
-
+// see `tables.rs`. The magic incantation is to use
+// `#[path="mull.rs"]` within it.
 pub mod tables;
 
-// pub use mull as tables::mull;
+// Alternative is to also pull mull in as guff::mull, which isn't what
+// I want:
+
+// pub mod mull; // I thought I could make this private? No?
+// pub mod tables { pub use crate::mull; }
 
 /// A typing trait meant to map to a primitive unsigned integer type
 /// such as u8, u16 or u32.
@@ -142,7 +141,8 @@ pub trait GaloisField {
     /// * storing the result of a non-modular (overflowing) multiply
     /// of two field elements
     type EE : ElementStore; // where Self::EE : From<Self::E>;
-    /// As EE, but signed
+    /// As EE, but signed. Used internally to implement some lookup
+    /// tables.
     type SEE : ElementStore; // where Self::EE : From<Self::E>;
 
     /// Size of the field in bits, eg GF(2<sup>8</sup>) &rarr; 8
@@ -345,7 +345,7 @@ pub trait GaloisField {
     // Here we have the reverse problem of converting an EE to E
     // Changing this to an associated function.
     fn mod_reduce(mut a : Self::EE, mut poly : Self::EE) -> Self::E
-    where Self::E: From<Self::EE>
+//    where Self::E: From<Self::EE>
     {
 	let eezero   = Self::EE::zero();
 	poly = poly << (Self::ORDER - 1).into();

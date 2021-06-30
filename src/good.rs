@@ -134,6 +134,18 @@ fn fill_inverse<T>(f : & T,
     }
 }
 
+
+// GF(2<sup>4</sup>) field implementations
+//
+// There are only three polynomials of order 4 that are irreducible
+// for this field:
+//
+// * 0x13 (19) (primitive)
+// * 0x19 (25) (primitive)
+// * 0x1f (31)
+//
+// There's probably no reason to use 0x1f. 
+
 // "good" F4 with fixed poly 0x13 using above mul table
 // Not meant to be used directly. Use [new_gf4_0x13] constructor
 // instead.
@@ -461,7 +473,130 @@ pub fn new_gf8_0x11b() -> F8_0x11b {
 // * 32 bit: 4**2
 // * 64 bit: 8**2
 
+use crate::tables::mull;
 
+// In addition to using table-based mull (using fixed size fragments)
+// we'll need poly-specific mod-reduce tables and inverse tables
+struct BytewiseReduceTable<G> where G : GaloisField {
+    reduce  : Vec<G::E>,
+}
+impl<G> BytewiseReduceTable<G>
+where G : GaloisField,
+      G::E   : Into<usize>,
+//      G::EE  : Into<usize>,
+//      G::E   : From<G::EE>,
+      G::E   : std::fmt::Debug
+{
+    fn new(f : &G) -> BytewiseReduceTable<G>
+    where
+	// G::EE  : Into<usize>,
+	// G::E   : From<G::EE>,
+	G::E   : Into<usize>
+    {
+
+	let mut reduce = Vec::<G::E>::with_capacity(256);
+
+	// will count 0, 256, 512, 768, 1024, ..., 65280
+	let mut i = G::EE::zero();
+	let delta = G::EE::one() << 8;
+	for _ in 0..=255 {
+	    reduce.push(G::mod_reduce(i, f.full_poly()));
+	    i = i + delta;
+	}
+	
+	BytewiseReduceTable::<G> { reduce }
+    }
+    // Can't implement mul here since u16 and u32 have different sets
+    // of sub-multiplications.
+
+    // Two ways of using the same table:
+    // * as a modular '<< 8' operation (on non-overflowing values)
+    // * as a way to reduce an overflowing value
+
+    fn mod_shift_left_8(&self, a : G::E) -> G::E {
+	let usize_a : usize = a.into();
+	let mask = self.reduce[usize_a >> 8];
+	(a << 8) ^ mask
+    }
+
+    // Take a G::EE, reduce it to a G::E one byte at a time
+    fn mod_reduce_bytewise(&self, mut a : G::EE) -> G::E
+    where G::E  : Into<G::EE>,
+	  G::EE : Into<G::E>,
+	  G::E  : Into<usize>,
+	  G::EE : Into<usize>    {
+	// we need two 8-bit steps to reduce from u32 to u16:
+	let mut steps = G::ORDER as usize >> 3;
+	// right-shift needed to move high byte into low byte
+	let shr = G::ORDER as usize - 8;
+	// half shift for moving mask and final return value
+	let half_shift = G::ORDER as usize;
+	while steps > 0 {
+	    let top_byte = a >> shr;
+	    let usize_byte : usize = top_byte.into();
+	    let mask : G::E = self.reduce[usize_byte];
+	    let xmask : G::EE = mask.into(); // extend mask
+
+	    // shift left to strip off top byte, since it has been
+	    // reduced, then apply mask
+	    a = (a << 8) ^ (xmask << half_shift);
+	    steps -= 1;
+	}
+	// result is in upper half of EE, so bring it down
+	a = a >> half_shift;
+	a.into()
+    }
+}
+
+
+#[doc(hidden)]
+pub struct F16_0x1002b {
+    reduce : BytewiseReduceTable::<crate::F16>,
+    inv    : Vec<u16>,
+}
+
+impl GaloisField for F16_0x1002b {
+    type E = u16;
+    type EE = u32;
+    type SEE = i32;
+
+    // we have to redeclare types for constants
+    const ORDER      : u16  = 16;
+    const POLY_BIT   : u32  = 0x1_0000;
+    const FIELD_MASK : u16  = 0xffff;
+    const HIGH_BIT   : u16  = 0x8000;
+
+    // the two required methods (everything else is default)
+    fn poly(&self)      -> u16   { 0x1002b }
+    fn full_poly(&self) -> u32  { 0x2b }
+
+    // pass mul call on to table
+    // #[inline(always)] // doesn't play nicely with benchmark code
+//  fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
+//    self.tables.mul(a,b)
+//  }
+    fn inv(&self, a : Self::E) -> Self::E
+    {
+	self.inv[a as usize]
+    }
+}
+
+/// Optimised GF(2<sup>16</sup>) with the (primitive?) polynomial 0x1002b
+pub fn new_gf4_0x1002b() -> F16_0x1002b {
+    // reference field object
+    let f = crate::new_gf16(0x1002b,0x2b);
+
+    // generate inverse table
+    let mut inv = Vec::<u16>::with_capacity(0x10000);
+    fill_inverse(&f, &mut inv, 0xffff);
+
+    // generate mod reduce table
+    let reduce = BytewiseReduceTable::<crate::F16>::new(&f);
+    
+    F16_0x1002b {
+	reduce,	inv
+    }
+}
 
 
 //
@@ -472,17 +607,6 @@ pub fn new_gf8_0x11b() -> F8_0x11b {
 // * rest supplied by default
 //
 // 
-
-// GF(2<sup>4</sup>) field implementations
-//
-// There are only three polynomials of order 4 that are irreducible
-// for this field:
-//
-// * 0x13 (19) (primitive)
-// * 0x19 (25) (primitive)
-// * 0x1f (31)
-//
-// There's probably no reason to use 0x1f. 
 
 #[cfg(test)]
 mod tests {
@@ -571,5 +695,11 @@ mod tests {
 	assert_eq!(fails, 0);
     }
 
+    // I notice that I haven't done any table testing as such.
+    // Everything above tests at a higher level. I'll continue in the
+    // same vein for now, but I might add more focused tests when I
+    // migrate the table code out of here into guff::tables.
+
+    
 
 }

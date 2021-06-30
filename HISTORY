@@ -53,10 +53,15 @@
 
 0.1.7
 
-  For u16, u32 fields, need a new approach using long multiplication
+  x For u16, u32 fields, need a new approach using long multiplication
+    o have static mull table
+    x need u16 and u32 mul routine
+    x need u16, u32 mod reduce tables (done, need testing)
+    x re-use existing inverse tables (large, but only allocated if used)
+    x should probably migrate table stuff from good to tables (defer?)
 
-  Make static (8k) MULL (long multiplication) table mandatory for now
+  o Make static (8k) MULL (long multiplication) table mandatory for now
 
-  Round out/rationalise vector functionality
+  x Round out/rationalise vector functionality (maybe defer)
 
-  Change field.mull() to Field::mull() since it doesn't depend on poly
+  o Change field.mull() to Field::mull() since it doesn't depend on poly
