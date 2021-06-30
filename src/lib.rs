@@ -316,9 +316,10 @@ pub trait GaloisField {
     #[doc(hidden)]
     /// Long Polynomial multiplication, *not* modulo the field polynomial
 
-    // Note the extra type constraint for conversion E -> EE
-    // (I could do something similar for poly/full_poly)
-    fn mull(&self, a : Self::E, b : Self::E) -> Self::EE
+    // Note the extra type constraint for conversion E -> EE.
+    // Changing this to a "class method", or whatever they're called
+    // in Rust, since it doesn't depend on a poly.
+    fn mull(a : Self::E, b : Self::E) -> Self::EE
     where Self::EE: From<Self::E>
     {
 	let ezero  = Self::E::zero();
