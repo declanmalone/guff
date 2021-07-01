@@ -533,7 +533,11 @@ where G : GaloisField,
 	// eprintln!("mod_shift_left_8: ORDER is {}, shr is {}",
 	// G::ORDER  as usize, shr);
 	// eprintln!("{} >> {} : {}", usize_a, shr, usize_a >> shr);
-	let mask = self.reduce[usize_a >> shr];
+
+	// safe because usize_a >> shr is an 8-bit index
+	let mask : G::E = unsafe {
+	    *self.reduce.get_unchecked(usize_a >> shr)
+	};
 	// Rust won't let me do this if a would overflow completely:
 	// (a << 8) ^ mask
 	if G::ORDER <= 8 { mask } else { (a << 8) ^ mask }
