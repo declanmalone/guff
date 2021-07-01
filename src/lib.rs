@@ -87,6 +87,15 @@
 //! > Noun *guff* - unacceptable behavior (especially ludicrously
 //!   false statements)
 
+// I want to emit assembly for these
+pub fn _monomorph() {
+    let _f4  = new_gf4(19,3);
+    let _f8  = new_gf8(0x11b,0x1b);
+    let _f16 = new_gf16(0x1002b, 0x2d);
+
+    assert_eq!(_f8.inv(0x53), 0xca);
+}
+
 //use num_traits;
 use num::{PrimInt,One,Zero};
 
