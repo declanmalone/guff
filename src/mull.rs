@@ -48,6 +48,7 @@
 #[inline(always)]
 pub fn rmull(big : u8, small : u8) -> u16 {
     let index = ( ((small as u16) << 8) ^ (big as u16) ) as usize;
+    // safe because max index is 12 bits and table has 2**12 entries
     unsafe {
 	*MULL.get_unchecked(index)
     }
@@ -57,6 +58,7 @@ pub fn rmull(big : u8, small : u8) -> u16 {
 #[inline(always)]
 pub fn lmull(big : u8, small : u8) -> u16 {
     let index = ( ((small as u16) << 8) ^ (big as u16) ) as usize;
+    // safe because max index is 12 bits and table has 2**12 entries
     let out = unsafe { *MULL.get_unchecked(index) };
     out << 4
 }
