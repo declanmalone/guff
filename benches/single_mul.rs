@@ -1,8 +1,10 @@
 
 
-use guff::{GaloisField, new_gf4, F4, new_gf8, F8, new_gf16, F16 };
-use guff::good::{new_gf4_0x13, new_gf8_0x11b, new_gf16_0x1002b};
-
+use guff::{GaloisField, new_gf4, F4, new_gf8, F8,
+	   new_gf16, F16, new_gf32, F32 };
+use guff::good::{new_gf4_0x13, new_gf8_0x11b,
+		 new_gf16_0x1002b};
+// , new_gf32_0x10000008d
 
 // const ref_f : F4 = F4 {full : 19, compact : 3};
 
@@ -347,6 +349,23 @@ pub fn good_gf16_div(c: &mut Criterion) {
 }
 
 
+// GF(2**32)
+pub fn ref_gf32_mul(c: &mut Criterion) {
+    let ref_f = new_gf32(0x10000008d,0x8d);
+    c.bench_with_input(
+		       BenchmarkId::new("gf32 mul", "ref"),
+		       &ref_f,
+		       |b, f| {
+			   b.iter(||
+				  for i in 0..=255 {
+				      for j in 0..=255 {
+					  f.mul(i,j);
+				      }
+				  }
+			   );
+		       });
+}
+
 
 criterion_group!(benches,
 		 // 0.1.5
@@ -368,6 +387,8 @@ criterion_group!(benches,
 		 good_gf16_inv,
 		 ref_gf16_div,
 		 good_gf16_div,
+		 // 0.1.8
+		 ref_gf32_mul,
 );
 criterion_main!(benches);
 
