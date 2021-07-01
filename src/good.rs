@@ -508,8 +508,9 @@ where G : GaloisField,
 	    reduce.push(G::mod_reduce(i, f.full_poly()));
 	    i = i + delta;	// can overflow if 0..=255
 	}
+	// something dodgy here? this didn't fix it
+	// reduce.push(G::mod_reduce(G::EE::zero(), f.full_poly()));
 	reduce.push(G::mod_reduce(i, f.full_poly()));
-
 	assert_eq!(reduce.len(), 256);
 	
 	BytewiseReduceTable::<G> { reduce }
@@ -746,6 +747,126 @@ mod tests {
     // Everything above tests at a higher level. I'll continue in the
     // same vein for now, but I might add more focused tests when I
     // migrate the table code out of here into guff::tables.
+
+    #[test]
+    fn test_f16_0x1002b_mul_conformance_limited1() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	// just a sampling... test is too long otherwise
+	for i in 0u16..=255 {
+	    for j in 0u16..=255 {
+		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    // fail early:
+		    eprintln!("Failed mul({} * {})", i, j);
+		    assert_eq!(f16.mul(i,j), f16_0x1002b.mul(i,j),
+			       "(ref vs good");
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    #[test]
+    fn test_f16_0x1002b_mul_conformance_limited2() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	// just a sampling... test is too long otherwise
+	for i in 0u16..=511 {
+	    for j in 0u16..=255 {
+		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    // fail early:
+		    eprintln!("Failed mul({} * {})", i, j);
+		    assert_eq!(f16.mul(i,j), f16_0x1002b.mul(i,j),
+			       "(ref vs good");
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    #[test]
+    fn test_f16_0x1002b_mul_conformance_limited3() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	// just a sampling... test is too long otherwise
+	for i in 0u16..=255 {
+	    for j in 0u16..=511 {
+		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    // fail early:
+		    eprintln!("Failed mul({} * {})", i, j);
+		    assert_eq!(f16.mul(i,j), f16_0x1002b.mul(i,j),
+			       "(ref vs good");
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    #[test]
+    fn test_f16_0x1002b_mul_conformance_limited4() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	// just a sampling... test is too long otherwise
+	for i in 0u16..=511 {
+	    for j in 0u16..=511 {
+		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    // fail early:
+		    eprintln!("Failed mul({} * {})", i, j);
+		    assert_eq!(f16.mul(i,j), f16_0x1002b.mul(i,j),
+			       "(ref vs good");
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    #[test]
+    fn test_f16_0x1002b_mul_conformance_limited5() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	// just a sampling... test is too long otherwise
+	for i in 0u16..=65535 {
+	    for j in 0u16..=255 {
+		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    // fail early:
+		    eprintln!("Failed mul({} * {})", i, j);
+		    assert_eq!(f16.mul(i,j), f16_0x1002b.mul(i,j),
+			       "(ref vs good");
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
+
+    #[test]
+    fn test_f16_0x1002b_mul_conformance_limited6() {
+	let f16         = new_gf16(0x1002b, 0x2b);
+	let f16_0x1002b = new_gf16_0x1002b();
+	let mut fails = 0;
+	// just a sampling... test is too long otherwise
+	for i in 0u16..=255 {
+	    for j in 0u16..=65535 {
+		if f16.mul(i,j) != f16_0x1002b.mul(i,j) {
+		    // fail early:
+		    eprintln!("Failed mul({} * {})", i, j);
+		    assert_eq!(f16.mul(i,j), f16_0x1002b.mul(i,j),
+			       "(ref vs good");
+		    fails += 1;
+		}
+	    }
+	}
+	assert_eq!(fails, 0);
+    }
 
     #[test]
     fn test_f16_0x1002b_mul_conformance() {
