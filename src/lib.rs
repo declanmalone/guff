@@ -93,7 +93,7 @@ pub fn _monomorph() {
     let _f8  = new_gf8(0x11b,0x1b);
     let _f16 = new_gf16(0x1002b, 0x2d);
 
-    assert_eq!(1, _f8.mul(0x53, 0xca));
+    assert_eq!(_f8.mul(1,1), _f8.mul(0x53, 0xca));
 }
 
 //use num_traits;
