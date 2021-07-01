@@ -47,7 +47,7 @@
 /// Straight multiply assuming small value is in low (rightmost) nibble position
 #[inline(always)]
 pub fn rmull(big : u8, small : u8) -> u16 {
-    let index = ( ((small as u16) << 8) | (big as u16) ) as usize;
+    let index = ( ((small as u16) << 8) ^ (big as u16) ) as usize;
     let out = MULL[index];
     // eprintln!("Big {}, Small {}", big, small);
     // eprintln!("Index {}", index);
@@ -58,7 +58,7 @@ pub fn rmull(big : u8, small : u8) -> u16 {
 /// Straight multiply assuming small value is in high (leftmost) nibble position
 #[inline(always)]
 pub fn lmull(big : u8, small : u8) -> u16 {
-    let index = ( ((small as u16) << 8) | (big as u16) ) as usize;
+    let index = ( ((small as u16) << 8) ^ (big as u16) ) as usize;
     let out = MULL[index];
     out << 4
 }
@@ -75,10 +75,10 @@ pub fn lrmull(big : u8, small : u8) -> u16 {
     let r : u16 = (small & 0x0f ).into();
 
     // Exact same index calculations for l, r
-    let l_index = ( (l << 8) | (big as u16) ) as usize;
+    let l_index = ( (l << 8) ^ (big as u16) ) as usize;
     let l_out = MULL[l_index];
 
-    let r_index = ( (r << 8) | (big as u16) ) as usize;
+    let r_index = ( (r << 8) ^ (big as u16) ) as usize;
     let r_out = MULL[r_index];
 
     // Difference is that we left-shift the l result

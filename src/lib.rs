@@ -358,7 +358,7 @@ where Self::EE : From<Self::E> {
         loop {
 	    if a & mask != eezero  { a = a ^ poly    }
 	    if a < Self::POLY_BIT  {
-		return a.try_into().unwrap_or(Self::E::zero())
+		return a.try_into().unwrap_or(Self::E::one())
 	    }
 	    mask = mask >> 1;
 	    poly = poly >> 1;
