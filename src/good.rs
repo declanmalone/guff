@@ -477,8 +477,6 @@ pub fn new_gf8_0x11b() -> F8_0x11b {
 // * 32 bit: 4**2
 // * 64 bit: 8**2
 
-use crate::tables::mull;
-
 // In addition to using table-based mull (using fixed size fragments)
 // we'll need poly-specific mod-reduce tables and inverse tables
 struct BytewiseReduceTable<G> where G : GaloisField {
