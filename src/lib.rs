@@ -96,6 +96,7 @@ pub fn _monomorph() {
     let a = _f8.inv(0x53);	// = 0xca
     let b = _f8.inv(0xca);	// = 0x53
 
+    #[inline(never)]
     fn inner_mul(f : &impl GaloisField<E=u8,EE=u16,SEE=i16>,
 		 a : u8, b : u8) -> u8 {
 	f.mul(a, b)
