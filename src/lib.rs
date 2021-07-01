@@ -93,13 +93,15 @@ pub fn _monomorph() {
     let _f8  = new_gf8(0x11b,0x1b);
     let _f16 = new_gf16(0x1002b, 0x2d);
 
-    let i = _f8.inv(0x53);
+    let a = _f8.inv(0x53);	// = 0xca
+    let b = _f8.inv(0xca);	// = 0x53
 
-    fn inner_mul(f : &impl GaloisField<E=u8,EE=u16,SEE=i16>, a : u8) -> u8 {
-	f.mul(0x53, a)
+    fn inner_mul(f : &impl GaloisField<E=u8,EE=u16,SEE=i16>,
+		 a : u8, b : u8) -> u8 {
+	f.mul(a, b)
     }
-    let b = inner_mul(&_f8, i);
-    eprintln!("0x53 x 0xca = {}", b);
+    let b = inner_mul(&_f8, a, b);
+    eprintln!("0xca x 0x53 = {}", b); // = 0x01
 }
 
 //use num_traits;
