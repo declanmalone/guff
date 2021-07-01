@@ -93,7 +93,9 @@ pub fn _monomorph() {
     let _f8  = new_gf8(0x11b,0x1b);
     let _f16 = new_gf16(0x1002b, 0x2d);
 
-    eprintln!("0x53 x 0xca = {}", _f8.mul(0x53, 0xca));
+    let i = _f8.inv(0x53);
+    
+    eprintln!("0x53 x 0xca = {}", _f8.mul(0x53, i));
 }
 
 //use num_traits;
