@@ -89,8 +89,9 @@
 
 //use num_traits;
 use num::{PrimInt,One,Zero};
-    // I hate having to use this:
-use std::convert::{TryFrom,TryInto};
+
+// I hate having to use this:
+use std::convert::{TryInto};
 
 pub mod good;
 
@@ -358,7 +359,7 @@ where Self::EE : From<Self::E> {
         loop {
 	    if a & mask != eezero  { a = a ^ poly    }
 	    if a < Self::POLY_BIT  {
-		return a.try_into().unwrap_or(Self::E::one())
+		return a.try_into().unwrap_or_else(|_| Self::E::one())
 	    }
 	    mask = mask >> 1;
 	    poly = poly >> 1;

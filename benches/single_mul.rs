@@ -1,7 +1,7 @@
 
 
-use guff::{GaloisField, new_gf4, F4, new_gf8, F8};
-use guff::good::{new_gf4_0x13, new_gf8_0x11b};
+use guff::{GaloisField, new_gf4, F4, new_gf8, F8, new_gf16, F16 };
+use guff::good::{new_gf4_0x13, new_gf8_0x11b, new_gf16_0x1002b};
 
 
 // const ref_f : F4 = F4 {full : 19, compact : 3};
@@ -251,6 +251,102 @@ pub fn good_gf8_pow(c: &mut Criterion) {
 		       });
 }
 
+// GF(2**16)
+pub fn ref_gf16_mul(c: &mut Criterion) {
+    let ref_f = new_gf16(0x1002b,0x2b);
+    c.bench_with_input(
+		       BenchmarkId::new("gf16 mul", "ref"),
+		       &ref_f,
+		       |b, f| {
+			   b.iter(||
+				  for i in 0..=255 {
+				      for j in 0..=255 {
+					  f.mul(i,j);
+				      }
+				  }
+			   );
+		       });
+}
+
+pub fn good_gf16_mul(c: &mut Criterion) {
+    let good_f = new_gf16_0x1002b();
+    c.bench_with_input(
+		       BenchmarkId::new("gf16 mul", "good"),
+		       &good_f,
+		       |b, f| {
+			   b.iter(||
+				  for i in 0..=255 {
+				      for j in 0..=255 {
+					  f.mul(i,j);
+				      }
+				  }
+			   );
+		       });
+}
+
+// Include both inv and div benchmarks (div should use our faster inv)
+
+pub fn ref_gf16_inv(c: &mut Criterion) {
+    let ref_f = new_gf16(0x1002b,0x2b);
+    c.bench_with_input(
+		       BenchmarkId::new("gf16 inv", "ref"),
+		       &ref_f,
+		       |b, f| {
+			   b.iter(||
+				  for i in 0..=255 {
+					  f.inv(i);
+				  }
+			   );
+		       });
+}
+
+pub fn good_gf16_inv(c: &mut Criterion) {
+    let good_f = new_gf16_0x1002b();
+    c.bench_with_input(
+		       BenchmarkId::new("gf16 inv", "good"),
+		       &good_f,
+		       |b, f| {
+			   b.iter(||
+				  for i in 0..=255 {
+					  f.inv(i);
+				  }
+			   );
+		       });
+}
+
+pub fn ref_gf16_div(c: &mut Criterion) {
+    let ref_f = new_gf16(0x1002b,0x2b);
+    c.bench_with_input(
+		       BenchmarkId::new("gf16 div", "ref"),
+		       &ref_f,
+		       |b, f| {
+			   b.iter(||
+				  for i in 0..=255 {
+				      for j in 0..=255 {
+					  f.div(i,j);
+				      }
+				  }
+			   );
+		       });
+}
+
+pub fn good_gf16_div(c: &mut Criterion) {
+    let good_f = new_gf16_0x1002b();
+    c.bench_with_input(
+		       BenchmarkId::new("gf16 div", "good"),
+		       &good_f,
+		       |b, f| {
+			   b.iter(||
+				  for i in 0..=255 {
+				      for j in 0..=255 {
+					  f.div(i,j);
+				      }
+				  }
+			   );
+		       });
+}
+
+
 
 criterion_group!(benches,
 		 // 0.1.5
@@ -265,6 +361,13 @@ criterion_group!(benches,
 		 good_gf8_div,
 		 ref_gf8_pow,
 		 good_gf8_pow,
+		 // 0.1.7
+		 ref_gf16_mul,
+		 good_gf16_mul,
+		 ref_gf16_inv,
+		 good_gf16_inv,
+		 ref_gf16_div,
+		 good_gf16_div,
 );
 criterion_main!(benches);
 

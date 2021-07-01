@@ -48,11 +48,7 @@
 #[inline(always)]
 pub fn rmull(big : u8, small : u8) -> u16 {
     let index = ( ((small as u16) << 8) ^ (big as u16) ) as usize;
-    let out = MULL[index];
-    // eprintln!("Big {}, Small {}", big, small);
-    // eprintln!("Index {}", index);
-    // eprintln!("Out: {}", out);
-    out
+    MULL[index]
 }
 
 /// Straight multiply assuming small value is in high (leftmost) nibble position

@@ -49,7 +49,7 @@
 //!
 
 use crate::{ GaloisField };
-use crate::tables::mull::{lmull,rmull,lrmull};
+use crate::tables::mull::{lmull,rmull};
 
 use num::{One,Zero};
 use std::convert::TryInto;
@@ -501,20 +501,17 @@ where G : GaloisField,
 
 	let mut reduce = Vec::<G::E>::with_capacity(256);
 
-	// will count 0, 256, 512, 768, 1024, ..., 65280
+	// for u8, would count 0, 256, 512, 768, 1024, ..., 65280
 	let mut i = G::EE::zero();
 	let delta = G::EE::one() << G::ORDER.into();
 	for _ in 0..=254 {
 	    let add = G::mod_reduce(i, f.full_poly());
-	    //eprintln!("Adding {} mod poly = {}", i, add);
+	    // eprintln!("Adding {} mod poly = {}", i, add);
 	    reduce.push(add);
 	    i = i + delta;	// can overflow if 0..=255
 	}
-	// something dodgy here? this didn't fix it
-	// reduce.push(G::mod_reduce(G::EE::zero(), f.full_poly()));
 	reduce.push(G::mod_reduce(i, f.full_poly()));
 	assert_eq!(reduce.len(), 256);
-	//panic!();
 	BytewiseReduceTable::<G> { reduce }
     }
     // Can't implement mul here since u16 and u32 have different sets
@@ -524,6 +521,7 @@ where G : GaloisField,
     // * as a modular '<< 8' operation (on non-overflowing values)
     // * as a way to reduce an overflowing value
 
+    #[inline(always)]
     fn mod_shift_left_8(&self, a : G::E) -> G::E {
 	let usize_a : usize = a.into();
 	// top 8 bits of:
@@ -532,13 +530,12 @@ where G : GaloisField,
 	// u32: u32 >> 24  = 32 - 8
 	// u64: u64 >> 56  = 64 - 8
 	let shr = (G::ORDER as usize) - 8;
-	eprintln!("mod_shift_left_8: ORDER is {}, shr is {}",
-		  G::ORDER  as usize, shr);
-	eprintln!("{} >> {} : {}", usize_a, shr, usize_a >> shr);
+	// eprintln!("mod_shift_left_8: ORDER is {}, shr is {}",
+	// G::ORDER  as usize, shr);
+	// eprintln!("{} >> {} : {}", usize_a, shr, usize_a >> shr);
 	let mask = self.reduce[usize_a >> shr];
-	// damn... Rust won't let me do this if a would overflow
+	// Rust won't let me do this if a would overflow completely:
 	// (a << 8) ^ mask
-	eprintln!("Mask: {:?}", mask);
 	if G::ORDER <= 8 { mask } else { (a << 8) ^ mask }
     }
 
@@ -597,8 +594,7 @@ impl GaloisField for F16_0x1002b {
 
     // use mull/reduce tables for mul
     fn mul(&self, a : Self::E, b : Self::E) -> Self::E {
-	// panic!("gf16 mul: ORDER is {}", self.order());
-	// panic!("gf16 mul: ORDER is {}", Self::ORDER);
+
 	// four small nibbles
 	let a3 : u8 = ((a >> 12) as u8) & 0x0f;
 	let a2 : u8 = ((a >>  8) as u8) & 0x0f;
@@ -607,65 +603,21 @@ impl GaloisField for F16_0x1002b {
 
 	// two big bytes
 	// ...
-	let b1 : u8 = (((b >> 8) & 0x00ff) as u8).into();
-	let b0 : u8 = (((b     ) & 0x00ff) as u8).into();
-
-	let mut extra = false;
-	if a2 == 1 && a1 == 0 && a0 == 0 && b1 == 1 && b0 == 0 {
-	    eprintln!("Extra debug for {} x {}", a, b);
-	    //extra = true;
-	    eprintln!("A nibbles:    [  {:02x}  {:02x}  {:02x}  {:02x}]",
-		     a3,a2,a1,a0);
-	    eprintln!("B bytes:      [      {:02x}      {:02x}]",
-		     b1,b0);
-	}
+	let b1 : u8 = ((b >> 8) & 0x00ff) as u8;
+	let b0 : u8 = ((b     ) & 0x00ff) as u8;
 
 	let mut c : u16;
 
-	if (extra) {
-	    eprintln!("lmull(b1, a3): {:016b}", lmull(b1, a3));
-	    eprintln!("rmull(b1, a2): {:016b}", rmull(b1, a2));
-	}
 	// work from high fragments down
-	// lmull() is not the problem
 	c = lmull(b1, a3) ^ rmull(b1, a2);
-	if (extra) {
-	    eprintln!("sum          : {:016b}", c);
-	}
 
 	c = self.reduce.mod_shift_left_8(c);
-	if (extra) {
-	    eprintln!("\n(<< 8) % poly: {:016b}\n", c);
-	}
 	
-	if (extra) {
-	    eprintln!("lmull(b0, a3): {:016b}", lmull(b0, a3));
-	    eprintln!("rmull(b0, a2): {:016b}", rmull(b0, a2));
-	}
 	c = c ^ lmull(b0, a3) ^ rmull(b0, a2);
-	if (extra) {
-	    eprintln!("sum          : {:016b}\n", c);
-	}
-	if (extra) {
-	    eprintln!("lmull(b1, a1): {:016b}", lmull(b1, a1));
-	    eprintln!("rmull(b1, a0): {:016b}", rmull(b1, a0));
-	}
 	c = c ^ lmull(b1, a1) ^ rmull(b1, a0);
-	if (extra) {
-	    eprintln!("sum          : {:016b}\n", c);
-	}
 
 	c = self.reduce.mod_shift_left_8(c);
-	if (extra) {
-	    eprintln!("\n(<< 8) % poly: {:016b}\n",
-		      self.reduce.mod_shift_left_8(c));
-	}
-	if (extra) {
-	    eprintln!("sum          : {:016b}\n", c);
-	}
 
-
-	// this can't overflow a u16
 	c = c ^ lmull(b0, a1) ^ rmull(b0, a0);
 	
 	c
