@@ -5,7 +5,7 @@ edition = "2018"
 description = "Implements Galois Fields for various natural sizes"
 homepage = "https://github.com/declanmalone/guff"
 categories = ["mathematics"]
-keywords = ["IDA", "Galois", "learning", "maths", "speed"]
+keywords = ["IDA", "Galois", "learning", "maths", "SIMD"]
 license = "GPL-2.0-or-later OR LGPL-2.0-or-later"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

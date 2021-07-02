@@ -47,6 +47,50 @@ calling the appropriate constructor;
 * use that object to do maths in that field: eg, `result =
 f.mul(a,b)`
 
+# Future Work
+
+## Vectors
+
+- [ ] Decide on function suite and give better names
+- [ ] Write test cases
+- [ ] Write benchmarks
+
+## SIMD
+
+- [x] Write and test x86 Rust code (using `core::arch`)
+- [ ] Import that code into the project
+- [ ] Use CPU/feature detection to conditionally compile it
+- [x] Write and test Arm NEON code in C
+- [ ] Port that code to Rust
+- [ ] Implement fallback code for unsupported platforms
+
+## Refactoring
+
+- [ ] Move table generation into `guff::tables`
+- [ ] Encapsulate inverse table code in a similar style
+- [ ] New module `guff::impls` for different ways to implement field maths
+- [ ] Use preamble (?) for list of sensible exports
+- [ ] Make some large static tables available as selectable features
+
+## Extra functionality
+
+- [ ] Finalise set of table generation routines
+- [ ] Test whether a value is a generator for a field
+- [ ] Test whether a polynomial is irreducible
+- [ ] Test whether a polynomial is primitive
+- [ ] Reference lists of polynomials
+
+## Pure Rust "good" implementations
+
+- [ ] Benchmark full set of optimised implementations
+- [ ] Update `guff::good` with results
+
+## Documentation
+
+- [ ] Write short intro to finite fields, with bibliography
+- [ ] Gather list of similar projects and write summaries/mini reviews
+- [ ] Write about experience of writing this project in Rust
+- [ ] Write short article about Assembly/SIMD in Rust
 
 # Crate Name
 
